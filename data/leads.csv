@@ -1,0 +1,51 @@
+id,nombre,telefono,producto_interes,estado,fecha_contacto,notas
+1,Maria Torres,0991234501,Pack Organico Familiar,nuevo lead,2026-04-24,Contacto por Instagram
+2,Carlos Ruiz,0991234502,Caja Semanal Verduras,en seguimiento,2026-04-23,Pidio cotizacion
+3,Ana Morales,0991234503,Pack Organico Familiar,cerrado,2026-04-22,Compra confirmada
+4,Pedro Lema,0991234504,Caja Semanal Verduras,nuevo lead,2026-04-24,Llego por recomendacion
+5,Luisa Vega,0991234505,Pack Frutas Premium,en seguimiento,2026-04-21,Espera descuento
+6,Jorge Mena,0991234506,Pack Organico Familiar,nuevo lead,2026-04-20,Interesado en plan mensual
+7,Daniela Paz,0991234507,Caja Semanal Verduras,cerrado,2026-04-19,Pago recibido
+8,Andres Nunez,0991234508,Pack Detox,en seguimiento,2026-04-18,Solicito detalle de entregas
+9,Sofia Rojas,0991234509,Pack Organico Familiar,nuevo lead,2026-04-17,Primer contacto por WhatsApp
+10,Miguel Cobo,0991234510,Caja Semanal Verduras,en seguimiento,2026-04-16,Quiere entrega martes
+11,Paola Arias,0991234511,Pack Frutas Premium,nuevo lead,2026-04-15,Consulta para oficina
+12,Diego Salas,0991234512,Pack Organico Familiar,cerrado,2026-04-14,Cliente recurrente
+13,Valeria Ponce,0991234513,Caja Semanal Verduras,en seguimiento,2026-04-13,Pendiente confirmacion
+14,Ricardo Moya,0991234514,Pack Detox,nuevo lead,2026-04-12,Pregunto por precios
+15,Camila Luna,0991234515,Pack Organico Familiar,cerrado,2026-04-11,Compra semanal activa
+16,Felipe Cruz,0991234516,Caja Semanal Verduras,nuevo lead,2026-04-10,Interes por suscripcion
+17,Elena Pinto,0991234517,Pack Frutas Premium,en seguimiento,2026-04-09,Evalua presupuesto
+18,Nicolas Bravo,0991234518,Pack Organico Familiar,nuevo lead,2026-04-08,Contacto por feria local
+19,Monica Ibarra,0991234519,Caja Semanal Verduras,cerrado,2026-04-07,Compra cerrada por llamada
+20,Kevin Yanez,0991234520,Pack Detox,en seguimiento,2026-04-06,Solicito prueba inicial
+21,Gloria Freire,0991234521,Pack Organico Familiar,nuevo lead,2026-04-05,Quiere informacion completa
+22,Martin Erazo,0991234522,Caja Semanal Verduras,en seguimiento,2026-04-04,Comparando proveedores
+23,Natalia Cedeño,0991234523,Pack Frutas Premium,nuevo lead,2026-04-03,Interes para regalo
+24,Oscar Rios,0991234524,Pack Organico Familiar,cerrado,2026-04-02,Pago con transferencia
+25,Carla Jara,0991234525,Caja Semanal Verduras,en seguimiento,2026-04-01,Prefiere contacto nocturno
+26,Henry Avila,0991234526,Pack Detox,nuevo lead,2026-03-31,Lead de anuncio digital
+27,Rosa Paredes,0991234527,Pack Organico Familiar,en seguimiento,2026-03-30,Solicito tabla nutricional
+28,Ivan Zambrano,0991234528,Caja Semanal Verduras,cerrado,2026-03-29,Ya es cliente activo
+29,Patricia Naranjo,0991234529,Pack Frutas Premium,nuevo lead,2026-03-28,Consulta para familia
+30,Sergio Valle,0991234530,Pack Organico Familiar,en seguimiento,2026-03-27,Pidio contacto viernes
+31,Tatiana Mera,0991234531,Caja Semanal Verduras,nuevo lead,2026-03-26,Interes en plan quincenal
+32,Julio Montero,0991234532,Pack Detox,cerrado,2026-03-25,Compra de prueba completada
+33,Gabriela Villacis,0991234533,Pack Organico Familiar,en seguimiento,2026-03-24,No responde desde hace 2 dias
+34,Byron Escobar,0991234534,Caja Semanal Verduras,nuevo lead,2026-03-23,Ingreso por referencia
+35,Adriana Molina,0991234535,Pack Frutas Premium,cerrado,2026-03-22,Confirmo pedido mensual
+36,Pablo Chica,0991234536,Pack Organico Familiar,en seguimiento,2026-03-21,Solicito metodo de pago
+37,Noemi Herrera,0991234537,Caja Semanal Verduras,nuevo lead,2026-03-20,Lead desde formulario web
+38,Cristian Cajas,0991234538,Pack Detox,en seguimiento,2026-03-19,Espera seguimiento comercial
+39,Veronica Rosero,0991234539,Pack Organico Familiar,cerrado,2026-03-18,Compra finalizada
+40,Esteban Carpio,0991234540,Caja Semanal Verduras,nuevo lead,2026-03-17,Interes para restaurante
+41,Lorena Acosta,0991234541,Pack Frutas Premium,en seguimiento,2026-03-16,Pidio lista de productos
+42,Mauricio Chiluisa,0991234542,Pack Organico Familiar,nuevo lead,2026-03-15,Prefiere envio viernes
+43,Silvia Espin,0991234543,Caja Semanal Verduras,cerrado,2026-03-14,Pedido entregado
+44,Alfredo Tapia,0991234544,Pack Detox,en seguimiento,2026-03-13,Solicito segunda llamada
+45,Marisol Benitez,0991234545,Pack Organico Familiar,nuevo lead,2026-03-12,Consulto por volumen
+46,Xavier Celi,0991234546,Caja Semanal Verduras,en seguimiento,2026-03-11,Negociando precio
+47,Jimena Chango,0991234547,Pack Frutas Premium,nuevo lead,2026-03-10,Contacto por Instagram Ads
+48,Raul Granda,0991234548,Pack Organico Familiar,cerrado,2026-03-09,Renovo suscripcion
+49,Diana Toapanta,0991234549,Caja Semanal Verduras,en seguimiento,2026-03-08,Pendiente validacion final
+50,Leonardo Pallo,0991234550,Pack Detox,nuevo lead,2026-03-07,Interesado en primera compra
