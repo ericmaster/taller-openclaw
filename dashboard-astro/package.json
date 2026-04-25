@@ -1,0 +1,28 @@
+{
+  "name": "dashboard-astro",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "import": "node scripts/import-leads.cjs",
+    "seed": "astro db execute src/db/seed.ts"
+  },
+  "dependencies": {
+    "@astrojs/db": "^0.20.1",
+    "@astrojs/preact": "^5.1.2",
+    "@libsql/client": "^0.17.3",
+    "@tailwindcss/vite": "^4.2.4",
+    "astro": "^6.1.9",
+    "better-sqlite3": "^12.9.0",
+    "chart.js": "^4.5.1",
+    "csv-parse": "^6.2.1",
+    "preact": "^10.29.1",
+    "tailwindcss": "^4.2.4"
+  }
+}

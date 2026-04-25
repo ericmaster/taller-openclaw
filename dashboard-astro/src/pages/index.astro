@@ -1,0 +1,121 @@
+---
+import { db } from 'astro:db';
+import Layout from '../layouts/Layout.astro';
+import Metrics from '../components/Metrics.astro';
+import PipelineChart from '../components/PipelineChart.tsx';
+import ProductDistribution from '../components/ProductDistribution.tsx';
+import LeadTable from '../components/LeadTable.astro';
+
+export const prerender = false;
+
+// Obtener todos los leads mediante raw SQL
+const allLeads = await db.all('SELECT * FROM Lead');
+
+// Obtener parámetros de filtro de la URL
+const url = Astro.url;
+const searchParams = url.searchParams;
+const filterEstado = searchParams.get('estado') || '';
+const filterProducto = searchParams.get('producto') || '';
+const filterFechaDesde = searchParams.get('fecha_desde') || '';
+const filterFechaHasta = searchParams.get('fecha_hasta') || '';
+
+// Aplicar filtros
+let leads = allLeads;
+if (filterEstado) {
+  leads = leads.filter(l => l.estado === filterEstado);
+}
+if (filterProducto) {
+  leads = leads.filter(l => l.producto_interes.includes(filterProducto));
+}
+if (filterFechaDesde) {
+  const desde = new Date(filterFechaDesde);
+  leads = leads.filter(l => new Date(l.fecha_contacto) >= desde);
+}
+if (filterFechaHasta) {
+  const hasta = new Date(filterFechaHasta);
+  leads = leads.filter(l => new Date(l.fecha_contacto) <= hasta);
+}
+
+// Calcular métricas sobre los leads filtrados
+const totalLeads = leads.length;
+const nuevosLeads = leads.filter(l => l.estado === 'nuevo lead').length;
+const enSeguimiento = leads.filter(l => l.estado === 'en seguimiento').length;
+const cerrados = leads.filter(l => l.estado === 'cerrado').length;
+const tasaConversion = totalLeads > 0 ? (cerrados / totalLeads * 100) : 0;
+
+// Obtener listas únicas para dropdowns
+const estadosUnicos = [...new Set(allLeads.map(l => l.estado))];
+const productosUnicos = [...new Set(allLeads.map(l => l.producto_interes))];
+---
+
+<Layout title="Dashboard Leads - OrganicBox Quito">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-2">Dashboard de Leads</h1>
+    <p class="text-gray-600 mb-8">Visualización y filtrado de leads de OrganicBox Quito</p>
+    
+    <!-- Formulario de filtros -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+      <h2 class="text-xl font-semibold mb-4">Filtros</h2>
+      <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <select name="estado" class="w-full p-2 border border-gray-300 rounded">
+            <option value="">Todos</option>
+            {estadosUnicos.map(estado => (
+              <option value={estado} selected={filterEstado === estado}>{estado}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Producto</label>
+          <select name="producto" class="w-full p-2 border border-gray-300 rounded">
+            <option value="">Todos</option>
+            {productosUnicos.map(producto => (
+              <option value={producto} selected={filterProducto === producto}>{producto}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha desde</label>
+          <input type="date" name="fecha_desde" value={filterFechaDesde} class="w-full p-2 border border-gray-300 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha hasta</label>
+          <input type="date" name="fecha_hasta" value={filterFechaHasta} class="w-full p-2 border border-gray-300 rounded" />
+        </div>
+        <div class="md:col-span-4 flex gap-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Aplicar filtros</button>
+          <a href="/" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Limpiar</a>
+        </div>
+      </form>
+    </div>
+    
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4">Métricas clave</h2>
+      <Metrics 
+        {totalLeads}
+        {nuevosLeads}
+        {enSeguimiento}
+        {cerrados}
+        {tasaConversion}
+      />
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Pipeline de leads</h2>
+        <PipelineChart client:load leads={leads} />
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Distribución por producto</h2>
+        <ProductDistribution client:load leads={leads} />
+      </div>
+    </div>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Tabla de leads</h2>
+      <p class="text-gray-600 mb-2">Mostrando {leads.length} de {allLeads.length} leads</p>
+      <LeadTable leads={leads} />
+    </section>
+  </div>
+</Layout>

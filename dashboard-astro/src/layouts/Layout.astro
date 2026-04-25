@@ -1,0 +1,33 @@
+---
+import '../styles/global.css';
+const { title = 'Dashboard Leads' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-green-700">OrganicBox Quito</h1>
+        <span class="text-sm text-gray-600">Dashboard de Leads</span>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <slot />
+  </main>
+
+  <footer class="mt-12 py-6 text-center text-gray-500 text-sm border-t">
+    <p>© 2026 OrganicBox Quito - Sistema interno de seguimiento de leads</p>
+  </footer>
+</body>
+</html>

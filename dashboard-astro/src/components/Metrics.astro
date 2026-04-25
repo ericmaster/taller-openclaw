@@ -1,0 +1,35 @@
+---
+const { totalLeads, nuevosLeads, enSeguimiento, cerrados, tasaConversion } = Astro.props;
+---
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700">Total leads</h3>
+    <p class="text-3xl font-bold text-blue-600 mt-2">{totalLeads}</p>
+    <p class="text-sm text-gray-500">Registros en sistema</p>
+  </div>
+  
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700">Nuevos leads</h3>
+    <p class="text-3xl font-bold text-green-600 mt-2">{nuevosLeads}</p>
+    <p class="text-sm text-gray-500">Última semana</p>
+  </div>
+  
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700">En seguimiento</h3>
+    <p class="text-3xl font-bold text-yellow-600 mt-2">{enSeguimiento}</p>
+    <p class="text-sm text-gray-500">Activos</p>
+  </div>
+  
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700">Cerrados</h3>
+    <p class="text-3xl font-bold text-purple-600 mt-2">{cerrados}</p>
+    <p class="text-sm text-gray-500">Conversiones</p>
+  </div>
+  
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700">Tasa de conversión</h3>
+    <p class="text-3xl font-bold text-red-600 mt-2">{tasaConversion.toFixed(1)}%</p>
+    <p class="text-sm text-gray-500">Cerrados / Total</p>
+  </div>
+</div>

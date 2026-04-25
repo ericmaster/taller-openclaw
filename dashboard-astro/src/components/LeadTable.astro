@@ -1,0 +1,40 @@
+---
+const { leads } = Astro.props;
+---
+
+<div class="overflow-x-auto">
+  <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">ID</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Nombre</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Teléfono</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Producto interés</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Estado</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Fecha contacto</th>
+        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {leads.map(lead => (
+        <tr class="hover:bg-gray-50" key={lead.id}>
+          <td class="py-2 px-4 border-b">{lead.id}</td>
+          <td class="py-2 px-4 border-b">{lead.nombre}</td>
+          <td class="py-2 px-4 border-b">{lead.telefono}</td>
+          <td class="py-2 px-4 border-b">{lead.producto_interes}</td>
+          <td class="py-2 px-4 border-b">
+            <span class={`px-2 py-1 text-xs rounded-full ${
+              lead.estado === 'nuevo lead' ? 'bg-blue-100 text-blue-800' :
+              lead.estado === 'en seguimiento' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {lead.estado}
+            </span>
+          </td>
+          <td class="py-2 px-4 border-b">{lead.fecha_contacto}</td>
+          <td class="py-2 px-4 border-b text-sm text-gray-600">{lead.notas}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
