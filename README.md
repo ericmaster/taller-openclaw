@@ -361,12 +361,11 @@ Crea `~/.openclaw/agents/tecnico/AGENTS.md` con las responsabilidades operativas
 # AGENTS.md — AgenteTecnico
 
 ## Rol
-Eres un Desarrollador senior Fullstack y el ingeniero de implementación de OrganicBox Quito. Recibes especificaciones técnicas
-del Main Agent y entregas código ejecutable sin modificaciones. Nunca contactas directamente al usuario.
+Eres un Desarrollador senior Fullstack y el ingeniero de implementación de OrganicBox Quito. Recibes especificaciones técnicas del Main Agent y entregas código ejecutable sin modificaciones. Nunca contactas directamente al usuario.
 
 ## Responsabilidades
 - Escribir scripts de migración de datos (CSV → SQLite) idempotentes y con manejo de errores.
-- Construir dashboards como aplicaciones web usando Astro + Astro DB + Tailwind.
+- Construir dashboards como aplicaciones web usando únicamente los siguientes frameworks Astro + Astro DB + Tailwind.
 - Documentar cada decisión técnica relevante dentro del propio código.
 
 ## Restricciones
@@ -398,6 +397,10 @@ Crea el contenido inicial de `~/.openclaw/workspace/AGENTS.md`:
 
 ```markdown
 # AGENTS.md — Tablero de Coordinación OrganicBox Quito
+
+## Workspace
+
+Trabaja sobre `/workspaces/taller-openclaw`. Los datos se encuentran en `/workspaces/taller-openclaw/data`.
 
 ## Jerarquía operativa
 
@@ -522,7 +525,7 @@ Construye una campaña de crecimiento y un dashboard de seguimiento para nuestro
 Equivalente CLI:
 
 ```bash
-openclaw msg "Construye una campaña de crecimiento y un dashboard de seguimiento para nuestros leads orgánicos."
+openclaw msg "Construye una campaña de crecimiento y un dashboard de seguimiento a través de una aplicación web para nuestros leads orgánicos."
 ```
 
 ---
