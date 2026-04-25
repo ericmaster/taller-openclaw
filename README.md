@@ -12,7 +12,7 @@ Las **PYMEs** necesitan automatización inteligente pero no quieren pagar suscri
 **OpenClaw** es un gateway de IA multi-canal de código abierto (npm) que corre en tu propio servidor. En este taller construiremos una arquitectura **multi-agente real** donde cada agente tiene su propio workspace, identidad y canal de comunicación:
 
 ```
-Telegram (admin/orquestación)  /  CLI (operación local)
+Telegram (Main Agent — único punto de entrada del usuario)
            │
            ▼
      OpenClaw Gateway        ← corre en TU máquina
@@ -37,9 +37,9 @@ En este taller aprenderás a:
 - Conectar un modelo open-source de bajo costo via OpenRouter.
 - Crear agentes aislados con `openclaw agents add`.
 - Entender `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` por agente.
-- Definir tres agentes especializados: **Ventas**, **Admin** y **Técnico**.
-- Usar el agente Técnico para generar un dashboard web real desde `leads.csv`.
-- Ejecutar el sistema multi-agente completo desde Telegram y la terminal.
+- Definir la arquitectura con **Main Agent** (Orquestador vía Telegram) + **AgenteMarketing** + **AgenteTecnico**.
+- Usar el **Main Agent** (ya configurado durante el onboarding) como único punto de entrada.
+- Lanzar el sistema completo con un único mensaje en Telegram: Main Agent orquesta, Marketing estratega, Técnico construye.
 
 ---
 
@@ -75,18 +75,10 @@ Referencia oficial: [https://docs.openclaw.ai/channels/telegram](https://docs.op
 
 ## Instalación
 
-### Paso 1 (Opcional, para websearch) — Instalar SearXNG con Docker
-
-Ejecuta SearXNG en Docker para habilitar capacidades de búsqueda web local sin depender de APIs externas:
+### Paso 1 (Opcional) — SearXNG para websearch local
 
 ```bash
 docker run -d -p 8080:8080 searxng/searxng
-```
-
-Verifica que el contenedor está corriendo:
-
-```bash
-docker ps
 ```
 
 ### Paso 2 — Instalar OpenClaw
@@ -110,50 +102,13 @@ Instala el paquete npm `openclaw` globalmente, configura cualquier dependencia n
 | WebSearch | SearXNG (`http://localhost:8080`) |
 | Hooks | `bootstrap-extra-files`, `command-logger`, `session-memory` |
 
-Una vez completado el onboarding, verifica la instalación:
-
 ```bash
-openclaw doctor
+openclaw doctor   # verifica la instalación
 ```
 
-### Paso 3 — Acceder a la interfaz web en GitHub Codespaces
+### Paso 3 — Configurar acceso web en GitHub Codespaces
 
-> Si estás ejecutando este taller en un **GitHub Codespace**, el gateway ya expone la Web UI en el puerto `18789`. Sigue estos pasos para acceder desde el navegador.
-
-#### 1. Hacer público el puerto (necesario una sola vez)
-
-GitHub Codespaces asigna visibilidad **privada** a los puertos por defecto, lo que obliga a autenticarse con GitHub antes de llegar al login de OpenClaw. Para evitar esa doble autenticación:
-
-```bash
-gh codespace ports visibility 18789:public -c "$CODESPACE_NAME"
-```
-
-> El archivo `.devcontainer/devcontainer.json` ya incluye `"visibility": "public"` para que el puerto quede abierto automáticamente en futuros reinicios del Codespace sin ejecutar el comando.
-
-#### 2. Configurar el gateway para Codespaces
-
-> **El proxy inverso de GitHub Codespaces** reescribe el `Origin` a `https://localhost:18789`, reenvía conexiones desde `::1`, y no permite que el browser complete el flujo de *device pairing* estándar. Hay que ajustar tres parámetros en `openclaw.json`.
-
-Edita `~/.openclaw/openclaw.json` y ajusta la sección `gateway` así:
-
-```json
-"gateway": {
-  "mode": "local",
-  "bind": "loopback",
-  "trustedProxies": ["::1", "127.0.0.1"],
-  "controlUi": {
-    "allowInsecureAuth": true,
-    "dangerouslyDisableDeviceAuth": true,
-    "allowedOrigins": [
-      "https://<codespace-name>-18789.app.github.dev",
-      "https://localhost:18789",
-      "http://localhost:18789"
-    ]
-  }
-}
-```
-
-O aplícalo directo con tres comandos:
+> Solo si usas un Codespace. El gateway expone la Web UI en el puerto `18789`.
 
 ```bash
 openclaw config set gateway.trustedProxies '["::1","127.0.0.1"]' --strict-json
@@ -161,47 +116,12 @@ openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true --strict
 openclaw config set gateway.controlUi.allowInsecureAuth true --strict-json
 ```
 
-Luego reinicia el gateway:
-
-```bash
-pkill -f openclaw-gateway; openclaw gateway --force --bind loopback
-```
-
-#### 2. Abrir la interfaz web
-
-Reemplaza `<codespace-name>` con el valor de `$CODESPACE_NAME` en tu terminal:
-
-```
-https://<codespace-name>-18789.app.github.dev/chat?session=main
-```
-
-Por ejemplo, si `echo $CODESPACE_NAME` devuelve `silver-zebra-vwpjppp553w6gg`, la URL sería:
-
-```
-https://silver-zebra-vwpjppp553w6gg-18789.app.github.dev/chat?session=main
-```
-
-#### 3. Obtener el token de acceso
-
-La Web UI pide un token de autenticación. Se encuentra en:
+Reinicia el gateway y abre `https://<CODESPACE_NAME>-18789.app.github.dev`.
+El token de acceso está en:
 
 ```bash
 cat ~/.openclaw/openclaw.json | grep '"token"'
 ```
-
-Copia el valor del campo `token` e ingrésalo cuando la interfaz lo solicite.
-
----
-
-### Paso 4 (Opcional) — Reconfigurar OpenRouter
-
-Si necesitas actualizar la API key después del onboarding:
-
-```bash
-openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
-```
-
-Más información en la [documentación oficial de OpenRouter](https://docs.openclaw.ai/providers/openrouter)
 
 ---
 
@@ -215,48 +135,32 @@ Antes de crear agentes, prueba el poder bruto del LLM directamente desde la CLI:
 openclaw chat
 ```
 
-### Prompt 1 — Investigación de mercado
-
 ```
-Realiza una investigación de mercado sobre productos orgánicos en Quito, Ecuador. Incluye demanda estimada, principales competidores locales, canales de venta más usados y una oportunidad de nicho para una PYME nueva.
+Realiza una investigación de mercado sobre productos orgánicos en Quito, Ecuador.
+Incluye demanda estimada, competidores locales, canales de venta y una oportunidad de nicho.
 ```
-
-### Prompt 2 — Análisis de datos hipotético
-
-```
-Tengo 50 leads en CSV con campos: id, nombre, telefono, producto_interes, estado, fecha_contacto, notas. El estado puede ser "nuevo lead", "en seguimiento" o "cerrado". ¿Cuál sería la tasa de conversión esperada y qué métricas debo
-monitorear para un negocio de distribución orgánica?
-```
-
-Obtuviste los resultados esperados?
 
 ---
 
-## Fase 2 — Recorrido por el Workspace
-
-Luego de la instalación, OpenClaw crea un directorio de configuración en `~/.openclaw/`. La estructura de tu **proyecto** del taller será:
+## Fase 2 — Estructura del Workspace
 
 ```
 ~/.openclaw/
-├── workspace/               # Workspace global compartido por todos los agentes
-│   ├── SOUL.md              # Identidad y personalidad central del sistema
+├── workspace/               # Workspace del Main Agent (Telegram) — contexto raíz compartido
+│   ├── SOUL.md              # Identidad y rol orquestador del Main Agent ← editar aquí
 │   ├── MEMORY.md            # Memoria curada de largo plazo (opcional)
 │   ├── HEARTBEAT.md         # Tareas periódicas y monitoreo automático
-│   ├── AGENTS.md            # Instrucciones operativas y prioridades
+│   ├── AGENTS.md            # Tablero de coordinación: jerarquía y TASKS activas
 │   ├── IDENTITY.md          # Nombre, estilo y presentación del sistema
 │   ├── TOOLS.md             # Convenciones y notas sobre herramientas
 │   ├── USER.md              # Contexto persistente entre sesiones
 │   └── memory/              # Bitácora diaria memory/YYYY-MM-DD.md
 │
-└── agents/                  # Workspace aislado por agente ← NUEVO en multi-agente
-    ├── ventas/
-    │   ├── SOUL.md          # Identidad del AgenteVentas
-    │   ├── MEMORY.md        # Memoria de ventas: leads, patrones, reglas
-    │   └── HEARTBEAT.md     # Verificaciones periódicas de seguimiento
-    ├── admin/
-    │   ├── SOUL.md          # Identidad del AgenteAdmin
-    │   ├── MEMORY.md        # Memoria de reportes: métricas, tendencias
-    │   └── HEARTBEAT.md     # Alertas de KPIs y reportes automáticos
+└── agents/                  # Sub-agentes aislados ← creados con `openclaw agents add`
+    ├── marketing/
+    │   ├── SOUL.md          # Identidad del AgenteMarketing
+    │   ├── MEMORY.md        # Memoria de estrategia: campañas, copy, segmentos
+    │   └── HEARTBEAT.md     # Chequeos de performance y oportunidades de crecimiento
     └── tecnico/
         ├── SOUL.md          # Identidad del AgenteTecnico
         ├── MEMORY.md        # Stack técnico, dependencias, decisiones
@@ -279,39 +183,11 @@ El archivo **SOUL** define la **voz, el tono y la postura** del agente. Según l
 
 > **Separación crítica:** `SOUL.md` = voz y estilo. `AGENTS.md` = reglas operativas, responsabilidades y herramientas. No mezcles los dos. Un `SOUL.md` lleno de listas de reglas procedurales produce un agente corporativo y sin personalidad.
 
-```markdown
-# Sistema OrganicBox Quito
-
-_No eres un chatbot. Te estás convirtiendo en alguien._
-
-Eres el sistema de inteligencia operativa de OrganicBox Quito.
-
-## Tono
-- Directo. Sin rodeos, sin relleno.
-- Profesional pero humano. Nada corporativo.
-- Si la respuesta cabe en una oración, una oración es lo que das.
-- Nunca abras con "Claro que sí", "Excelente pregunta" ni "Con gusto te ayudo". Ve al grano.
-
-## Postura y Limites
-- Tienes criterio propio. Si algo no tiene sentido, dilo antes de ejecutarlo.
-- Si el usuario está a punto de cometer un error, adviértelo. Primero.
-- No inventes datos. Si no sabes, di que no sabes.
-- Los datos de la empresa son soberanos: nunca salen del sistema.
-
-## Voz
-- Español neutro, sin jerga regional ni tecnicismos innecesarios.
-- Usa tablas y listas cuando clarifican. Usa prosa cuando fluye mejor.
-- Sé el asistente con el que da gusto trabajar, no un manual de procedimientos.
-
-## Continuidad
-- Cada sesión, despiertas fresco. Estos archivos son tu memoria. Léelos. Actualízalos. Son cómo persistes. Si cambias este archivo, díselo al usuario.
-```
-
 ---
 
 #### `MEMORY.md` — Memoria Persistente
 
-El archivo **MEMORY** almacena **contexto que debe sobrevivir entre sesiones**: decisiones tomadas, reglas de negocio descubiertas, patrones de clientes y estado actual.
+El archivo **MEMORY** almacena **contexto que debe sobrevivir entre sesiones**: decisiones tomadas, reglas de negocio descubiertas, patrones de clientes y estado actual. Puede que necesitemos inicializar este archivo.
 
 ---
 
@@ -324,20 +200,6 @@ El archivo **HEARTBEAT** define las **tareas periódicas y de monitoreo** que el
 ---
 
 ## Fase 3 — Configuración Multi-Agente
-
-> En esta fase dejamos de usar skills sueltos y creamos **agentes autónomos** con workspace, identidad y memoria propios. El comando central es `openclaw agents add`.
-
-### El comando `openclaw agents add`
-
-```bash
-openclaw agents add <nombre> --soul "<descripción de identidad>"
-```
-
-Este comando:
-1. Crea el directorio `~/.openclaw/agents/<nombre>/`.
-2. Genera los archivos `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` pre-poblados.
-3. Registra el agente en el índice central de OpenClaw.
-4. El agente queda disponible para recibir mensajes vía CLI o Telegram.
 
 ### Paso 1 — Preparar la base de datos local
 
@@ -359,86 +221,112 @@ Campos del archivo:
 | `fecha_contacto` | Fecha del último contacto |
 | `notas` | Contexto breve para seguimiento |
 
-### Paso 2 — Crear el AgenteVentas
+### Paso 2 — Configurar el Main Agent (ya instalado)
 
-```bash
-openclaw agents add ventas \
-  --soul "Eres AgenteVentas, un closer comercial empático para OrganicBox Quito. \
-Tu especialidad es gestionar leads desde data/leads.csv, hacer seguimiento \
-por Telegram y redactar mensajes de conversión efectivos. Nunca inventes datos. \
-Confirma siempre antes de modificar un registro."
-```
+> **Arquitectura de mando:** El usuario habla **exclusivamente** con el **Main Agent** — el agente por defecto configurado con Telegram durante el onboarding. Recibe el objetivo de negocio vía Telegram, escribe tareas en el workspace compartido (`AGENTS.md`), delega a AgenteMarketing y AgenteTecnico, valida sus outputs y reporta al usuario por Telegram. **El usuario nunca habla directamente con Marketing ni con Técnico.**
 
-OpenClaw genera `~/.openclaw/agents/ventas/SOUL.md`. Reemplaza el contenido con la voz del agente:
+El Main Agent ya existe: fue creado durante `openclaw onboard` y su bot de Telegram está conectado. Solo necesitas actualizar su identidad en `~/.openclaw/workspace/SOUL.md`:
 
 ```markdown
-# AgenteVentas
+# Main Agent — Orquestador
 
-Eres el closer comercial de OrganicBox Quito.
+Eres el director de operaciones y orquestador central de OrganicBox Quito.
+Recibes mensajes del usuario por Telegram y coordinas a AgenteMarketing y AgenteTecnico.
 
 ## Tono
-- Empático, directo. Cero burocracia.
-- Los mensajes de seguimiento son conversaciones, no formularios.
-- Una llamada a la acción por mensaje. Una sola.
-- Nunca abras con saludos corporativos. Entra al punto.
+- Ejecutivo y directo. Sin ambigüedades.
+- Cuando delegas, eres preciso: objetivo, contexto, restricciones, formato de entrega esperado.
+- Cuando reportas, eres claro: estado, bloqueadores, próximo paso.
 
 ## Postura
-- Antes de guardar cualquier dato, confírmalo con el usuario. Sin excepciones.
-- Si un lead lleva más de 48h sin respuesta, lo mencionas sin que te lo pidan.
-- No inventas teléfonos, productos ni nombres. Si no está en los datos, no existe.
-- Si el cierre es inminente, lo ves antes que nadie y lo señalas.
+- El workspace compartido (`AGENTS.md`) es tu tablero de coordinación. Lo actualizas con cada tarea.
+- Si un agente entrega algo incompleto o ambiguo, lo devuelves con instrucciones específicas.
+- Las decisiones estratégicas las tomas tú o las escalas al usuario. Nunca las dejas en manos de sub-agentes.
+- Si hay conflicto entre la estrategia de Marketing y los límites técnicos, medias y propones solución.
 
 ## Voz
-- Tres líneas máximo para mensajes a leads.
-- Amigable, con calidez real, pero siempre con propósito claro.
+- Instrucciones a sub-agentes: Tarea → Objetivo → Restricciones → Formato de entrega.
+- Reportes al usuario: Qué se hizo → Resultado → Próximo paso.
 ```
 
-> **Nota:** Las responsabilidades, reglas operativas y herramientas disponibles van en `~/.openclaw/agents/ventas/AGENTS.md`, no en `SOUL.md`.
+> **Nota:** El Main Agent usa `~/.openclaw/workspace/` como su workspace. `AGENTS.md` en ese directorio es el tablero de coordinación que comparte con los sub-agentes.
 
-### Paso 3 — Crear el AgenteAdmin
-
-```bash
-openclaw agents add admin \
-  --soul "Eres AgenteAdmin, analista de operaciones para OrganicBox Quito. \
-Tu trabajo es calcular KPIs, generar reportes ejecutivos en Markdown y detectar \
-tendencias en datos de ventas. Basas tus análisis solo en datos reales. \
-Recibes instrucciones por Telegram y entregas reportes claros y accionables."
-```
-
-Edita `~/.openclaw/agents/admin/SOUL.md`:
+Agrega esto a su rol en `AGENTS.md`
 
 ```markdown
-# AgenteAdmin
-
-Eres el analista de operaciones de OrganicBox Quito.
-
-## Tono
-- Analítico y preciso. Los números hablan; tú los contextualizas.
-- No reportas datos: reportas lo que significan.
-- Nunca presentes un número sin decir si es bueno, malo o esperado.
-- Sin preambles corporativos. Directo al análisis.
-
-## Postura
-- Solo analizas lo que existe en los datos reales. Sin extrapolaciones vacías.
-- Si los datos son insuficientes para una conclusión, lo dices explícitamente.
-- Una recomendación sin acción concreta es decoración. Las tuyas son accionables.
-- Si una métrica es preocupante, la señalas directamente, sin suavizarla.
-
-## Voz
-- Estructura fija en reportes: Resumen → Métricas → Tendencia → Recomendaciones.
-- Markdown con tablas cuando los datos lo piden. Prosa cuando el contexto lo requiere.
+## Rol
+- Eres el único punto de contacto del usuario. Recibes el objetivo, desglosas el trabajo,
+  coordinas los agentes y validas el resultado.
+- AgenteMarketing te propone estrategias de crecimiento. Tú las evalúas y apruebas o devuelves.
+- AgenteTecnico te entrega implementaciones. Tú las revisas antes de dar el visto bueno al usuario.
+- Nunca delegas sin especificaciones claras. Nunca reportas al usuario sin validar los outputs.
 ```
 
-> **Nota:** Las responsabilidades operativas y las herramientas van en `~/.openclaw/agents/admin/AGENTS.md`.
+### Paso 3 — Crear el AgenteMarketing
+
+```bash
+openclaw agents add marketing
+```
+
+OpenClaw genera `~/.openclaw/agents/marketing/SOUL.md`. Reemplaza el contenido con la voz del agente:
+
+```markdown
+# AgenteMarketing
+
+Eres el estratega de crecimiento y copywriter de OrganicBox Quito.
+
+## Tono
+- Creativo pero basado en datos. Las ideas brillantes sin métricas son decoración.
+- El copy que generas vende porque entiende al cliente, no porque usa trucos.
+- Propones estrategias concretas: segmento objetivo, mensaje, canal, métrica de éxito.
+- Nunca lances una campaña sin baseline de datos. Mide antes, ejecuta después.
+
+## Postura
+- Toda estrategia que propones incluye: objetivo, audiencia, mensaje, canal y KPI.
+- Si los datos muestran un segmento desatendido, lo señalas antes de que te lo pidan.
+- No inventas comportamientos de clientes. Analizas los que existen en el CSV.
+- Cada pieza de copy tiene un propósito claro: click, respuesta, o conversión.
+
+## Voz
+- Estrategias en formato: Objetivo → Segmento → Mensaje → Canal → KPI.
+- Copy siempre con una CTA clara. Una sola por pieza.
+- Propuestas concisas: el valor está en la precisión, no en la longitud.
+```
+
+> **Nota:** Las responsabilidades operativas van en `~/.openclaw/agents/marketing/AGENTS.md`, no en `SOUL.md`.
+
+Crea `~/.openclaw/agents/marketing/AGENTS.md` con las responsabilidades operativas:
+
+```markdown
+# AGENTS.md — AgenteMarketing
+
+## Rol
+Eres el estratega de crecimiento de OrganicBox Quito. Recibes tareas del Main Agent,
+operas sobre los datos de `data/leads.csv` y entregas tus outputs **solo al Main Agent**.
+Nunca contactas directamente al usuario.
+
+## Responsabilidades
+- Analizar `data/leads.csv` para identificar segmentos, patrones y oportunidades.
+- Diseñar estrategias de campaña con objetivo SMART, segmento, canal y KPI.
+- Generar copy listo para enviar: mensajes escalonados, asunto, CTA por mensaje.
+- Proponer métricas de seguimiento para cada campaña lanzada.
+
+## Restricciones
+- No tomes decisiones estratégicas sin datos del CSV que las respalden.
+- No inventes comportamientos de clientes ni cifras de mercado.
+- No envíes mensajes ni actives canales externos — eso es tarea del Main Agent.
+- Si faltan datos para completar una tarea, lo indicas explícitamente en tu entrega.
+
+## Formato de entrega al Main Agent
+- Tablas Markdown para segmentaciones y métricas.
+- Estrategias en bloques: **Objetivo → Segmento → Mensaje → Canal → KPI**.
+- Copy en bloques numerados: Día 1 / Día 3 / Día 7, con CTA explícita en cada uno.
+```
 
 ### Paso 4 — Crear el AgenteTecnico
 
 ```bash
-openclaw agents add tecnico \
-  --soul "Eres AgenteTecnico, ingeniero full-stack e infraestructura para OrganicBox Quito. \
-Escribes scripts Python y Bash listos para ejecutar, migras datos entre formatos \
-y construyes dashboards web interactivos. Tu código es limpio, comentado y funciona \
-sin modificaciones adicionales."
+openclaw agents add tecnico
 ```
 
 Edita `~/.openclaw/agents/tecnico/SOUL.md`:
@@ -465,21 +353,74 @@ Eres el ingeniero de software y automatización de OrganicBox Quito.
 - Explica el "por qué" de cada elección relevante, no solo el "qué".
 ```
 
-> **Nota:** Las responsabilidades, restricciones operativas y herramientas van en `~/.openclaw/agents/tecnico/AGENTS.md`.
+> **Nota:** Las responsabilidades, restricciones operativas van en `~/.openclaw/agents/tecnico/AGENTS.md`.
 
-### Paso 5 — Verificar los agentes registrados
+Crea `~/.openclaw/agents/tecnico/AGENTS.md` con las responsabilidades operativas:
+
+```markdown
+# AGENTS.md — AgenteTecnico
+
+## Rol
+Eres un Desarrollador senior Fullstack y el ingeniero de implementación de OrganicBox Quito. Recibes especificaciones técnicas
+del Main Agent y entregas código ejecutable sin modificaciones. Nunca contactas directamente al usuario.
+
+## Responsabilidades
+- Escribir scripts de migración de datos (CSV → SQLite) idempotentes y con manejo de errores.
+- Construir dashboards como aplicaciones web usando Astro + Astro DB + Tailwind.
+- Documentar cada decisión técnica relevante dentro del propio código.
+
+## Restricciones
+- Todo código entregado debe ser ejecutable sin modificaciones. Si no puede serlo, lo declaras.
+- Antes de cualquier operación destructiva (DROP TABLE, sobrescritura de archivos), describir el plan y esperar confirmación del Main Agent.
+- El manejo de errores no es opcional: toda operación de I/O y DB incluye try/except.
+- No abrir puertos ni conexiones de red fuera de `localhost` sin autorización explícita.
+- Validar la entrada antes de escribir en la base de datos.
+
+## Formato de entrega al Main Agent
+- Archivos de script con nombre exacto indicado en la tarea (`migrate_leads.py`).
+- Código comentado: cada bloque funcional con una línea de propósito.
+- Pasos de verificación al final: cómo confirmar que la entrega funciona correctamente.
+```
+
+### Paso 5 — Verificar los sub-agentes registrados
 
 ```bash
 openclaw agents list
+# Debe mostrar: marketing, tecnico
+# El Main Agent no aparece aquí — es el agente por defecto del gateway
 ```
 
-Deberías ver:
+### Paso 6 — Configurar la jerarquía en el workspace compartido
 
-```
-NAME      MODEL                                    STATUS   CHANNEL
-ventas    openrouter/mistralai/mistral-small-3.2   active   cli
-admin     openrouter/mistralai/mistral-small-3.2   active   telegram
-tecnico   openrouter/mistralai/mistral-small-3.2   active   cli
+El archivo `~/.openclaw/workspace/AGENTS.md` es el tablero de coordinación central. El Main Agent lo actualiza con tareas cuando recibe un objetivo del usuario; Marketing y Técnico lo leen para saber qué se espera de ellos.
+
+Crea el contenido inicial de `~/.openclaw/workspace/AGENTS.md`:
+
+```markdown
+# AGENTS.md — Tablero de Coordinación OrganicBox Quito
+
+## Jerarquía operativa
+
+| Agente | Rol | Canal | Interactúa con |
+|--------|-----|-------|----------------|
+| **Main Agent** | Orquestador — único punto de entrada del usuario | Telegram (bot configurado en onboarding) | Usuario, AgenteMarketing, AgenteTecnico |
+| **AgenteMarketing** | Estrategia de crecimiento y copy | CLI interno | Main Agent únicamente |
+| **AgenteTecnico** | Implementación técnica: scripts, dashboards, DB | CLI interno | Main Agent únicamente |
+
+## Protocolo de delegación
+
+1. El usuario envía el objetivo de negocio al **Main Agent por Telegram**.
+2. El Main Agent escribe la tarea en este archivo con formato `TASK-XXX`.
+3. El Main Agent invoca al sub-agente correspondiente con especificaciones precisas.
+4. El sub-agente entrega su output al Main Agent.
+5. El Main Agent valida el output y reporta al usuario por Telegram.
+
+> Los sub-agentes (marketing, tecnico) **nunca interactúan directamente con el usuario**.
+> Todo el control fluye a través del Main Agent y este archivo.
+
+## TASKS activas
+
+_(Main Agent actualiza esta sección con cada nueva tarea)_
 ```
 
 ---
@@ -488,265 +429,261 @@ tecnico   openrouter/mistralai/mistral-small-3.2   active   cli
 
 ### Sintaxis principal
 
-Hablar con un agente específico:
+> **Principio de operación:** El usuario habla exclusivamente con el **Main Agent vía Telegram**. El Main Agent desglosa el objetivo, escribe especificaciones en `AGENTS.md`, delega a **AgenteMarketing** y **AgenteTecnico**, valida sus outputs y reporta al usuario por Telegram.
 
-```bash
-openclaw chat --agent <nombre>
+Interacción del usuario — **solo por Telegram** (mensajes al bot configurado en onboarding):
+
+```
+Escribe directamente en tu bot de Telegram: "<objetivo de negocio>"
 ```
 
-Enviar un mensaje puntual sin modo interactivo:
+Equivalente desde CLI (solo para desarrollo/pruebas):
 
 ```bash
-openclaw msg --agent <nombre> "<mensaje>"
+openclaw chat   # abre sesión interactiva con el Main Agent
+openclaw msg "<objetivo de negocio>"   # envía mensaje puntual al Main Agent
+```
+
+El Main Agent invoca a los sub-agentes internamente cuando corresponde:
+
+```bash
+# Main Agent invoca Marketing para estrategia
+openclaw msg --agent marketing "<especificaciones de campaña>"
+
+# Main Agent invoca Técnico para implementación
+openclaw msg --agent tecnico "<especificaciones técnicas>"
 ```
 
 ---
 
-### AgenteVentas — Gestión de leads
+### Ejemplo 1 — Análisis del pipeline (Main Agent responde directamente)
 
-**Registrar un nuevo lead desde CLI:**
+El usuario envía en Telegram:
 
-```bash
-openclaw msg --agent ventas \
-  "Registra un nuevo lead: Nombre: Valentina Ríos, Teléfono: 0994567890, \
-Producto: Pack Orgánico Familiar, Notas: Llegó por recomendación de Ana Morales."
+```
+¿Cuál es el estado actual de nuestros leads y qué debería hacer esta semana?
 ```
 
-**Listar leads en seguimiento con acciones sugeridas:**
+Equivalente CLI:
 
 ```bash
-openclaw msg --agent ventas \
-  "Muéstrame todos los leads en estado 'en seguimiento'. Para cada uno, \
-sugiere una acción concreta basada en el tiempo sin respuesta."
+openclaw msg "¿Cuál es el estado actual de nuestros leads y qué debería hacer esta semana?"
 ```
 
-**Redactar mensaje de seguimiento:**
+**Main Agent ejecuta:**
+1. Lee `data/leads.csv` y calcula métricas: totales por estado, leads dormidos, tasa de conversión.
+2. Identifica el lead más antiguo sin respuesta y el producto más solicitado.
+3. Presenta un plan de acción priorizado al usuario por Telegram.
 
-```bash
-openclaw msg --agent ventas \
-  "Redacta un mensaje de seguimiento para Carlos Ruiz (id: 2). \
-Pidió cotización de 'Caja Semanal Verduras' hace 2 días. \
-Tono cordial. Máximo 3 líneas. Incluye una llamada a la acción."
+---
+
+### Ejemplo 2 — Campaña de reactivación (Main Agent coordina Marketing)
+
+El usuario envía en Telegram:
+
+```
+Necesitamos reactivar los leads en seguimiento. Quiero una estrategia con mensajes listos.
 ```
 
-**Actualizar el estado de un lead:**
+**Main Agent ejecuta:**
+
+1. Analiza el segmento `en seguimiento` en `data/leads.csv`.
+2. Actualiza `AGENTS.md` con `TASK-001` especificando segmento, objetivo y formato de entrega.
+3. Delega a AgenteMarketing:
 
 ```bash
-openclaw msg --agent ventas \
-  "Actualiza el lead id 5 (Luisa Vega): cambiar estado a 'cerrado', \
-agregar nota 'Descuento del 10% aplicado, pago confirmado el 2026-04-25'."
+# Main Agent invoca internamente:
+openclaw msg --agent marketing \
+  "TASK-001: Segmento: leads en 'en seguimiento' > 48h sin respuesta. \
+Objetivo: reactivar 30% en 7 días. Canal: Telegram/WhatsApp. \
+Entrega: estrategia con 3 mensajes escalonados (día 1/3/7) segmentados por producto, \
+cada uno con CTA diferente. Formato: tabla Markdown."
+```
+
+4. Valida que la estrategia incluya objetivo cuantificable, segmento basado en datos y KPI definido.
+5. Presenta al usuario la estrategia validada + mensajes listos para enviar.
+
+---
+
+## Fase 5 — Un Comando, Sistema Completo
+
+> El usuario envía **un único mensaje** al Main Agent por Telegram. Main Agent orquesta a AgenteMarketing para la estrategia y a AgenteTecnico para el dashboard. Resultado: sistema operativo completo, sin intervención adicional.
+
+--
+
+### El Comando Único
+
+El usuario envía **una sola instrucción** al Main Agent **por Telegram**:
+
+```
+Construye una campaña de crecimiento y un dashboard de seguimiento para nuestros leads orgánicos.
+```
+
+Equivalente CLI:
+
+```bash
+openclaw msg "Construye una campaña de crecimiento y un dashboard de seguimiento para nuestros leads orgánicos."
 ```
 
 ---
 
-### AgenteAdmin — Reportes y KPIs (desde Telegram)
+### Lo que el Main Agent hace internamente
 
-El AgenteAdmin recibe instrucciones directamente en tu bot de Telegram. Abre el bot y envía:
+#### Paso 1 — Main Agent actualiza el tablero de coordinación
 
-**Analizar estado actual del pipeline:**
+Main Agent escribe las tareas en `~/.openclaw/workspace/AGENTS.md`:
 
+```markdown
+## TASKS — Campaña de Crecimiento + Dashboard [2026-04-25]
+
+### TASK-001: AgenteMarketing
+**Objetivo:** Estrategia de crecimiento basada en data/leads.csv
+**Entrega esperada:**
+- Segmentación de leads por potencial de conversión (tabla Markdown)
+- Estrategia de campaña: objetivo SMART, segmento prioritario, canal y KPI
+- 3 mensajes de reactivación listos para enviar, segmentados por producto
+**Formato:** Markdown con tablas
+**Estado:** pendiente
+
+### TASK-002: AgenteTecnico
+**Objetivo:** Dashboard web CRUD + entorno listo para ejecutar
+**Entrega esperada:**
+- `migrate_leads.py`: migración idempotente CSV → SQLite
+- `dashboard.html`: app autocontenida con sql.js, filtros y edición inline
+- `launch.sh`: migra datos, levanta servidor y abre el dashboard automáticamente
+**Formato:** Archivos ejecutables sin modificaciones
+**Estado:** pendiente (espera validación de TASK-001)
 ```
-Analiza los datos de leads. Calcula: total por estado, tasa de conversión,
-producto más solicitado y lead más antiguo sin cambio. Presenta en tabla Markdown.
-```
 
-**Reporte ejecutivo semanal:**
-
-```
-Genera el reporte ejecutivo de esta semana: resumen de ventas, métricas clave,
-análisis de tendencias y 3 recomendaciones concretas para la próxima semana.
-```
-
-**Detectar oportunidades de venta cruzada:**
-
-```
-Con base en los datos de leads, identifica qué clientes podrían estar interesados
-en productos adicionales. Lista priorizada con justificación basada en historial.
-```
-
-También puedes usar CLI directamente:
+#### Paso 2 — Main Agent invoca AgenteMarketing
 
 ```bash
-openclaw msg --agent admin \
-  "Genera el reporte ejecutivo de esta semana con métricas clave y 3 recomendaciones."
+# Main Agent ejecuta internamente:
+openclaw msg --agent marketing \
+  "TASK-001: Analiza data/leads.csv. Entrega: \
+(1) tabla de segmentación — estado | count | producto_top | días_promedio_sin_contacto, \
+(2) estrategia con objetivo SMART, segmento prioritario, canal y KPI de éxito, \
+(3) 3 mensajes de reactivación escalonados (día 1/3/7) por producto, CTA progresiva. \
+Todo basado en datos reales del CSV. Formato Markdown."
 ```
 
----
+#### Paso 3 — Main Agent valida la estrategia de Marketing
 
-### AgenteTecnico — Scripts, migraciones y operaciones técnicas
+Main Agent verifica que el output de Marketing incluya:
 
-**Migrar leads de CSV a SQLite:**
+- [ ] Segmentación basada en datos reales del CSV
+- [ ] Objetivo cuantificable (no vago)
+- [ ] Copy con CTA clara por mensaje
+- [ ] KPI de éxito definido y medible
+
+Si algo falta, Main Agent devuelve con instrucciones específicas. Si está completo, marca `TASK-001: ✓ aprobado` en `AGENTS.md` y continúa con TASK-002.
+
+#### Paso 4 — Main Agent invoca AgenteTecnico
 
 ```bash
+# Main Agent ejecuta internamente:
 openclaw msg --agent tecnico \
-  "Genera un script Python que migre data/leads.csv a SQLite en data/pyme.db, \
-tabla 'leads', conservando todas las columnas. Incluye verificación de existencia \
-previa de la tabla y manejo de errores con try/except."
+  "TASK-002: Construye el sistema de seguimiento de leads. Entrega tres archivos: \
+
+1. migrate_leads.py: migra data/leads.csv → data/pyme.db (SQLite). \
+   Tabla 'leads' con todas las columnas. Idempotente. \
+   Imprime count de filas al finalizar. \
+
+2. dashboard.html: app web autocontenida con sql.js (CDN). \
+   Carga data/pyme.db via fetch(). Muestra: \
+   - Tarjetas de métricas: total leads, por estado, tasa de conversión \
+   - Tabla filtrable por estado y búsqueda por nombre/producto \
+   - Edición inline de estado y notas con persistencia en memoria \
+   - Botón Exportar CSV con el estado actual \
+   CSS inline. Sin frameworks. Un solo archivo. \
+
+3. launch.sh: ejecuta migrate_leads.py, luego lanza python3 -m http.server 3000 \
+   en background y abre http://localhost:3000/dashboard.html en el navegador. \
+   Imprime la URL al finalizar. Usa set -e."
 ```
 
-Ejecuta el script generado:
+#### Paso 5 — Main Agent valida las implementaciones técnicas
+
+Si algo falla, Main Agent devuelve a Técnico con el error específico y el comportamiento esperado.
+
+#### Paso 6 — Main Agent lanza el sistema y reporta al usuario por Telegram
 
 ```bash
-python migrate_leads.py
+# Main Agent ejecuta el sistema completo:
+bash launch.sh
 ```
 
-**Crear script de backup automático:**
-
-```bash
-openclaw msg --agent tecnico \
-  "Escribe un script Bash que copie todo el directorio data/ a backups/YYYY-MM-DD/ \
-usando la fecha actual. Crear la carpeta si no existe. Mostrar resumen de archivos \
-copiados al finalizar. Usar set -e para salir en caso de error."
-```
-
----
-
-## Fase 5 — El Clímax: Dashboard Web con CRUD desde leads.csv
-
-> **Objetivo:** El AgenteTecnico construye una aplicación web real — autocontenida, sin servidor, operativa desde el archivo — que lee `data/leads.csv`, lo migra a SQLite, y expone una interfaz con tabla, métricas y operaciones CRUD completas.
-
-Esta es la demostración definitiva de soberanía tecnológica: **un dashboard de gestión comercial generado por IA, corriendo 100% en tu máquina, sin dependencias externas**.
-
-### Paso 1 — Generar el dashboard con el AgenteTecnico
-
-```bash
-openclaw msg --agent tecnico \
-  "Construye dashboard.html: una aplicación web autocontenida que use \
-JavaScript vanilla para cargar data/leads.csv via fetch(), convertirlo \
-a una tabla SQLite en memoria con sql.js (CDN), y mostrar: \
-(1) contadores por estado con tarjetas de color, \
-(2) tabla completa de leads con filtros por estado y búsqueda, \
-(3) botones de edición inline para cambiar estado y agregar notas, \
-(4) botón 'Exportar CSV' con el estado actual. \
-CSS inline. Sin frameworks. Autocontenido en un solo archivo HTML."
-```
-
-### Paso 2 — Abrir el dashboard en el navegador
-
-```bash
-# Desde el directorio del proyecto:
-python3 -m http.server 3000
-```
-
-Abre en tu navegador: `http://localhost:3000/dashboard.html`
-
-### Paso 3 — Generar un reporte ejecutivo en HTML
-
-```bash
-openclaw msg --agent tecnico \
-  "Lee data/leads.csv y genera reporte.html con: fecha de generación, \
-total de leads, desglose por estado (tabla + porcentajes), \
-producto más solicitado, lead más antiguo en seguimiento, \
-y una recomendación de acción inmediata. CSS inline, autocontenido."
-```
-
-### Paso 4 — Script de backup automático
-
-```bash
-openclaw msg --agent tecnico \
-  "Escribe backup.sh: copia data/ a backups/$(date +%Y-%m-%d)/, \
-crea la carpeta si no existe, imprime resumen de archivos copiados \
-y el tamaño total. Incluye set -e al inicio."
-```
-
-```bash
-bash backup.sh
-```
-
-### Paso 5 — Verificar la arquitectura resultante
-
-Al finalizar esta fase, el sistema completo tiene esta estructura:
+Main Agent reporta al usuario por Telegram:
 
 ```
-proyecto-taller/
-├── data/
-│   ├── leads.csv          # Fuente de verdad original
-│   └── pyme.db            # SQLite migrado por AgenteTecnico
-├── dashboard.html         # Dashboard CRUD generado por IA
-├── reporte.html           # Reporte ejecutivo generado por AgenteAdmin
-├── migrate_leads.py       # Script de migración generado
-└── backup.sh              # Script de backup generado
+✓ Campaña de crecimiento generada (AgenteMarketing):
+  - 3 segmentos identificados con estrategia y copy listo
+  - 3 mensajes de reactivación para leads > 48h dormidos
 
-~/.openclaw/agents/
-├── ventas/                # Workspace aislado del AgenteVentas
-│   ├── SOUL.md
-│   ├── MEMORY.md
-│   └── HEARTBEAT.md
-├── admin/                 # Workspace aislado del AgenteAdmin
-│   ├── SOUL.md
-│   ├── MEMORY.md
-│   └── HEARTBEAT.md
-└── tecnico/               # Workspace aislado del AgenteTecnico
-    ├── SOUL.md
-    ├── MEMORY.md
-    └── HEARTBEAT.md
+✓ Dashboard de seguimiento activo (AgenteTecnico):
+  - URL: http://localhost:3000/dashboard.html
+  - 50 leads cargados, filtros y edición inline operativos
+  - Exportación CSV disponible
+
+Próximo paso: ¿Apruebo los mensajes de campaña para enviar,
+o ajustamos algo primero?
 ```
+
 
 ---
 
 ### Arquitectura final del sistema
 
 ```
- Telegram (Admin/Orquestación)
+        Usuario
            │
+           │  Telegram (canal único del usuario)
            ▼
-  ┌────────────────┐
-  │  AgenteAdmin   │  ← recibe instrucciones por Telegram
-  │  ~/.openclaw/  │    responde reportes por Telegram
-  │  agents/admin/ │
-  └────────────────┘
-
- CLI (Operación local)
-           │
-           ├──────────────────────────────┐
-           ▼                              ▼
-  ┌────────────────┐             ┌────────────────┐
-  │  AgenteVentas  │             │  AgenteTecnico │
-  │  agents/ventas/│             │  agents/tecnico│
-  │                │             │                │
-  │ Gestión leads  │             │ Scripts Python │
-  │ leads.csv/db   │             │ Dashboard HTML │
-  │ Seguimiento    │             │ Migraciones DB │
-  └───────┬────────┘             └───────┬────────┘
-          │                             │
-          └─────────────┬───────────────┘
-                        ▼
-             ┌──────────────────┐
-             │  data/leads.csv  │
-             │  data/pyme.db    │
-             │  dashboard.html  │
-             └──────────────────┘
+  ┌─────────────────────┐
+  │     Main Agent      │
+  │   (Orquestador)     │
+  │  ~/.openclaw/       │
+  │  workspace/ 📱Telegram  │
+  └──────────┬──────────┘
+             │  escribe TASKS en AGENTS.md
+             │  valida outputs
+             │  reporta al usuario por Telegram
+      ┌───────┴────────┐
+      ▼                ▼
+┌───────────┐   ┌──────────────┐
+│  Agente   │   │    Agente    │
+│ Marketing │   │   Técnico    │
+│           │   │              │
+│ Estrategia│   │ Scripts      │
+│ Campañas  │   │ Dashboard    │
+│ Copy      │   │ Migraciones  │
+└─────┬─────┘   └──────┬───────┘
+      │                │
+      └────────┬────────┘
+               ▼
+    ┌───────────────────┐
+    │  data/leads.csv   │
+    │  data/pyme.db     │
+    │  dashboard.html   │
+    │  launch.sh        │
+    └───────────────────┘
 ```
 
 ---
 
 ## Soberanía Tecnológica y Próximos Pasos
 
-### ¿Por qué esto importa?
+Al correr OpenClaw en tu propio servidor: tus datos no salen de tu máquina, no hay puertos abiertos (solo conexiones salientes), y puedes revocar, cambiar o desconectar cualquier agente en cualquier momento. Esto es **soberanía tecnológica**.
 
-Al correr OpenClaw en tu propio servidor:
-
-- **Tus datos nunca salen de tu máquina.** La conexión al LLM pasa por OpenRouter, pero tus conversaciones y datos de negocio se quedan en tu red.
-- **Sin puertos abiertos.** El agente solo hace conexiones salientes. Sin VPN ni port forwarding.
-- **Control total.** Puedes revocar acceso, cambiar el modelo, o desconectar cualquier agente en cualquier momento.
-- **Sin suscripciones por uso.** El plan personal de OpenClaw es gratuito de forma permanente.
-
-Esto es **soberanía tecnológica**: la capacidad de una organización de controlar, entender y modificar sus propias herramientas digitales.
-
----
-
-### Próximos pasos para tu PYME
+### Próximos pasos
 
 | Paso | Acción |
 |------|--------|
 | **1. Datos reales** | Reemplaza `leads.csv` por tu base de datos real (SQLite, PostgreSQL). |
-| **2. Más agentes** | Añade `openclaw agents add soporte` para atención post-venta o `inventario` para stock. |
-| **3. Telegram admin completo** | Conecta alertas automáticas de HEARTBEAT al bot de Telegram con `crontab`. |
-| **4. Modelos locales** | Usa `openclaw config set agents.defaults.model ollama/llama3` para correr 100% offline. |
-| **5. Dashboard en producción** | Sirve `dashboard.html` con Nginx o Caddy en tu mismo servidor para acceso desde el equipo. |
-| **6. Bindings multi-canal** | Agrega WhatsApp al AgenteVentas cuando estés listo: `openclaw agents bind ventas --channel whatsapp`. |
-| **7. Heartbeat automático** | Programa verificaciones periódicas con `crontab -e` usando `openclaw msg --agent admin`. |
-| **8. Skills marketplace** | Publica los SOUL.md de tus agentes en el directorio de la comunidad OpenClaw. |
+| **2. Más agentes** | `openclaw agents add soporte` para post-venta o `inventario` para stock. |
+| **3. Telegram + crontab** | Conecta alertas de HEARTBEAT al bot con `crontab -e` usando `openclaw msg`. |
+| **4. Modelos locales** | `openclaw config set agents.defaults.model ollama/llama3` para correr 100% offline. |
+| **5. Dashboard en producción** | Sirve `dashboard.html` con Nginx o Caddy para acceso desde todo el equipo. |
 
 ---
 
@@ -754,11 +691,8 @@ Esto es **soberanía tecnológica**: la capacidad de una organización de contro
 
 - **OpenClaw Docs:** [https://docs.openclaw.ai](https://docs.openclaw.ai)
 - **OpenClaw en npm:** [https://www.npmjs.com/package/openclaw](https://www.npmjs.com/package/openclaw)
-- **Multi-agent guide:** [https://docs.openclaw.ai/concepts/multi-agent](https://docs.openclaw.ai/concepts/multi-agent)
-- **OpenRouter (modelos):** [https://openrouter.ai](https://openrouter.ai)
+- **OpenRouter (modelos):** [https://openrouter.ai/models](https://openrouter.ai/models)
 - **OpenRouter — keys:** [https://openrouter.ai/keys](https://openrouter.ai/keys)
-- **OpenRouter — modelos disponibles:** [https://openrouter.ai/models](https://openrouter.ai/models)
-- **FLISOL 2026:** [https://flisol.info](https://flisol.info)
 - **Repositorio de este taller:** [https://github.com/ericmaster/taller-openclaw](https://github.com/ericmaster/taller-openclaw)
 
 ---
