@@ -1,18 +1,18 @@
 # Implementación de Sistemas Multi-Agente con OpenClaw
 
 > **FLISOL 2026 — Taller Práctico**
-> Construye un sistema de ventas multi-agente para PYMEs usando OpenClaw — un gateway de IA multi-canal de código abierto que corre en tu propio servidor, conectado a modelos de bajo costo vía OpenRouter.
+> Construye un sistema de ventas multi-agente para PYMEs usando OpenClaw — un gateway de IA multi-canal de código abierto que corre en tu propio servidor, sin suscripciones, sin enviar tus datos a terceros.
 
 ---
 
 ## Introducción
 
-Las **PYMEs** necesitan automatización inteligente pero no quieren pagar suscripciones costosas ni enviar sus datos a servicios externos desconocidos.
+Las **PYMEs** necesitan automatización inteligente pero no quieren pagar suscripciones costosas ni enviar sus datos a servicios externos desconocidos. Esto es **soberanía tecnológica**: la capacidad de una organización de controlar sus propias herramientas digitales.
 
-**OpenClaw** es un gateway de IA multi-canal de código abierto (npm) que corre en tu propio servidor. En este taller usaremos una arquitectura operativa simple por canal:
+**OpenClaw** es un gateway de IA multi-canal de código abierto (npm) que corre en tu propio servidor. En este taller construiremos una arquitectura **multi-agente real** donde cada agente tiene su propio workspace, identidad y canal de comunicación:
 
 ```
-Telegram (admin) / WhatsApp (leads) / CLI (operación)
+Telegram (admin/orquestación)  /  CLI (operación local)
            │
            ▼
      OpenClaw Gateway        ← corre en TU máquina
@@ -21,25 +21,25 @@ Telegram (admin) / WhatsApp (leads) / CLI (operación)
      OpenRouter              ← enruta a cualquier LLM
            │
            ▼
-  mistral / gemini / llama / qwen / ...
+  mistral / gemini / llama / qwen / deepseek / ...
 ```
 
-- El gateway OpenClaw corre **completamente en tu servidor**. Tus conversaciones no salen de tu red.
-- **OpenRouter** actúa como router de modelos: una sola API key para acceder a decenas de LLMs de bajo costo.
-- Los **Skills** son archivos `.md` que definen personalidad, memoria y comportamiento del agente.
-- Los archivos clave `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` son el núcleo de la identidad del sistema.
-- Canal de administración: **Telegram** (instrucciones como usuario administrador).
-- Canal comercial: **WhatsApp** (captación, seguimiento y cierre de leads).
+- El gateway OpenClaw corre **completamente en tu servidor**. Tus conversaciones y datos nunca salen de tu red.
+- **OpenRouter** actúa como router de modelos: una sola API key para acceder a más de 300 LLMs de bajo costo.
+- Cada agente se crea con `openclaw agents add` y obtiene un **workspace aislado** en `~/.openclaw/agents/<nombre>/`.
+- Los archivos clave `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` definen el alma, la memoria y el ritmo de cada agente.
+- Canal de administración y orquestación: **Telegram**.
+- Canal de operación y desarrollo: **CLI**.
 
 En este taller aprenderás a:
 
 - Instalar OpenClaw con el instalador oficial de una línea.
 - Conectar un modelo open-source de bajo costo via OpenRouter.
-- Definir el ruteo de canales: admin por Telegram y leads por WhatsApp.
-- Entender `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md`.
-- Definir Skills para cuatro agentes especializados: **Ventas**, **Admin**, **Técnico** y **Orquestador**.
-- Incluir una landing page para redirigir prospectos a la conversación por WhatsApp.
-- Ejecutar el sistema multi-agente completo desde la terminal.
+- Crear agentes aislados con `openclaw agents add`.
+- Entender `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` por agente.
+- Definir tres agentes especializados: **Ventas**, **Admin** y **Técnico**.
+- Usar el agente Técnico para generar un dashboard web real desde `leads.csv`.
+- Ejecutar el sistema multi-agente completo desde Telegram y la terminal.
 
 ---
 
@@ -58,72 +58,29 @@ Una sola API key te da acceso a más de 300 modelos: `mistral`, `gemini-flash`, 
 
 ### 2) Telegram (admin) — crear bot y guardar token
 
-1. Crea el bot en Telegram con `@BotFather`.
-2. Guarda el bot token para usarlo en el onboarding de OpenClaw.
-3. Ten Telegram instalado y listo para enviar un mensaje de prueba.
+1. Abre Telegram y busca `@BotFather`.
+2. Envía `/newbot` y sigue las instrucciones para nombrar tu bot.
+3. Guarda el **bot token** (formato: `123456789:AAFxxxx...`). Lo necesitarás en el onboarding.
+4. Ten Telegram instalado en tu dispositivo para enviar mensajes de prueba al bot.
 
 Referencia oficial: [https://docs.openclaw.ai/channels/telegram](https://docs.openclaw.ai/channels/telegram)
 
-### 3) WhatsApp (leads) — preparar Cloud API
+### 3) Checklist rápido de llaves listas
 
-Para el taller, la opción recomendada es usar el número de prueba de Meta Cloud API. Así nadie bloquea su WhatsApp personal.
-
-Plan recomendado para participantes:
-1. Plan A: número de prueba de Cloud API (rápido, ideal para taller).
-2. Plan B: número dedicado (SIM o eSIM) para pruebas más cercanas a producción.
-3. Evitar durante el taller: migrar un número personal activo.
-
-**A. Crear app y habilitar WhatsApp Cloud API**
-
-1. Entra a Meta for Developers.
-2. Crea una App.
-3. Agrega el producto WhatsApp.
-4. Ve al panel de WhatsApp Cloud API de la app.
-
-**B. Usar número de prueba**
-
-1. Activa el test setup de WhatsApp Cloud API.
-2. Copia estos datos:
-  - `WHATSAPP_PHONE_NUMBER_ID`
-  - `WHATSAPP_BUSINESS_ACCOUNT_ID`
-  - `WHATSAPP_ACCESS_TOKEN` (token temporal)
-3. Registra en la lista de destinatarios permitidos los números de participantes que harán pruebas.
-
-> **Nota:** el token temporal expira. Si expira durante el taller, genera uno nuevo y actualízalo.
-
-Referencia oficial: [https://docs.openclaw.ai/channels/whatsapp](https://docs.openclaw.ai/channels/whatsapp)
-
-### 4) Checklist rápido de llaves listas
-
-- Tienes `OPENROUTER_API_KEY` disponible.
-- Tienes el token del bot de Telegram a mano.
-- Tienes `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_ACCOUNT_ID` y `WHATSAPP_ACCESS_TOKEN`.
-- Ya sabes qué canal se usa para cada flujo: admin por Telegram, leads por WhatsApp.
+- [ ] Tienes `OPENROUTER_API_KEY` disponible (`sk-or-v1-...`).
+- [ ] Tienes el token del bot de Telegram a mano (`123456789:AAF...`).
+- [ ] Tienes Telegram instalado y puedes enviar mensajes al bot.
 
 ---
 
 ## Instalación
 
-### Paso 1 — Pre-instalar Homebrew
+### Paso 1 (Opcional, para websearch) — Instalar SearXNG con Docker
 
-Instala Homebrew antes de continuar con el resto del taller:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-Verifica que quedó instalado:
+Ejecuta SearXNG en Docker para habilitar capacidades de búsqueda web local sin depender de APIs externas:
 
 ```bash
-brew --version
-```
-
-### Paso 2 — Instalar websearch con SearXNG
-
-Ejecuta SearXNG en Docker para habilitar capacidades de búsqueda web local en tu entorno:
-
-```bash
-docker run -d -p 8888:8080 searxng/searxng
+docker run -d -p 8080:8080 searxng/searxng
 ```
 
 Verifica que el contenedor está corriendo:
@@ -132,7 +89,9 @@ Verifica que el contenedor está corriendo:
 docker ps
 ```
 
-### Paso 3 — Instalar OpenClaw
+### Paso 2 — Instalar OpenClaw
+
+El instalador oficial descarga y configura todo en una sola línea:
 
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash
@@ -140,105 +99,136 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 
 > Más detalle en [https://docs.openclaw.ai/install](https://docs.openclaw.ai/install)
 
-**¿Qué hace?**
-Instala el paquete npm `openclaw` globalmente, instala y configura cualquier dependecia si hace falta, y lanza el asistente interactivo de onboarding (`openclaw onboard`) para configurar tu primer proveedor de IA y la conexión inicial de canales (incluyendo Telegram para administración).
+**¿Qué hace el instalador?**
+Instala el paquete npm `openclaw` globalmente, configura cualquier dependencia necesaria y lanza el asistente interactivo de onboarding (`openclaw onboard`). Durante el onboarding configuramos:
 
-Verifica la instalación:
+| Parámetro | Valor recomendado para el taller |
+|-----------|----------------------------------|
+| Proveedor | OpenRouter |
+| Modelo | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` o  `openrouter/openai/gpt-oss-120b:free` o `openrouter/google/gemma-4-26b-a4b-it:free` |
+| Canal | Telegram (ingresa tu bot token) |
+| WebSearch | SearXNG (`http://localhost:8080`) |
+| Hooks | `bootstrap-extra-files`, `command-logger`, `session-memory` |
 
-```bash
-openclaw --version
-```
-
-### Paso 4 — Configurar OpenRouter en OpenClaw (salta si ya lo configuraste en Quickstart)
-
-Guarda la key que preparaste antes:
-
-```bash
-openclaw secrets set OPENROUTER_API_KEY sk-or-v1-TU_KEY_AQUI
-```
-
-Verifica que el secreto está guardado:
+Una vez completado el onboarding, verifica la instalación:
 
 ```bash
-openclaw secrets list
-# OPENROUTER_API_KEY  ✓ set
+openclaw doctor
 ```
 
-Selecciona el modelo predeterminado (recomendado para el taller — bajo costo, alta calidad):
+### Paso 3 — Acceder a la interfaz web en GitHub Codespaces
+
+> Si estás ejecutando este taller en un **GitHub Codespace**, el gateway ya expone la Web UI en el puerto `18789`. Sigue estos pasos para acceder desde el navegador.
+
+#### 1. Hacer público el puerto (necesario una sola vez)
+
+GitHub Codespaces asigna visibilidad **privada** a los puertos por defecto, lo que obliga a autenticarse con GitHub antes de llegar al login de OpenClaw. Para evitar esa doble autenticación:
 
 ```bash
-openclaw setup
-# Durante el setup, elige: openrouter/mistralai/mistral-small-3.2
+gh codespace ports visibility 18789:public -c "$CODESPACE_NAME"
 ```
 
-O edita directamente el archivo de configuración:
+> El archivo `.devcontainer/devcontainer.json` ya incluye `"visibility": "public"` para que el puerto quede abierto automáticamente en futuros reinicios del Codespace sin ejecutar el comando.
+
+#### 2. Configurar el gateway para Codespaces
+
+> **El proxy inverso de GitHub Codespaces** reescribe el `Origin` a `https://localhost:18789`, reenvía conexiones desde `::1`, y no permite que el browser complete el flujo de *device pairing* estándar. Hay que ajustar tres parámetros en `openclaw.json`.
+
+Edita `~/.openclaw/openclaw.json` y ajusta la sección `gateway` así:
+
+```json
+"gateway": {
+  "mode": "local",
+  "bind": "loopback",
+  "trustedProxies": ["::1", "127.0.0.1"],
+  "controlUi": {
+    "allowInsecureAuth": true,
+    "dangerouslyDisableDeviceAuth": true,
+    "allowedOrigins": [
+      "https://<codespace-name>-18789.app.github.dev",
+      "https://localhost:18789",
+      "http://localhost:18789"
+    ]
+  }
+}
+```
+
+O aplícalo directo con tres comandos:
 
 ```bash
-openclaw config set agents.defaults.model "openrouter/mistralai/mistral-small-3.2"
+openclaw config set gateway.trustedProxies '["::1","127.0.0.1"]' --strict-json
+openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true --strict-json
+openclaw config set gateway.controlUi.allowInsecureAuth true --strict-json
 ```
 
-**Modelos recomendados por costo/calidad:**
-
-| Modelo | Ref en OpenClaw | Costo aprox. |
-|--------|-----------------|---------------|
-| Mistral Small 3.2 | `openrouter/mistralai/mistral-small-3.2` | ~$0.10/M tokens |
-| Gemini 2.0 Flash | `openrouter/google/gemini-2.0-flash-001` | ~$0.10/M tokens |
-| Qwen 3 235B (MoE) | `openrouter/qwen/qwen3-235b-a22b` | ~$0.14/M tokens |
-| Llama 3.3 70B | `openrouter/meta-llama/llama-3.3-70b-instruct` | ~$0.13/M tokens |
-| Auto (OpenRouter elige) | `openrouter/auto` | variable |
-
-> **Tip:** Para el taller usaremos `openrouter/auto` si no sabes cuál elegir. OpenRouter seleccionará el mejor modelo disponible automáticamente.
-
-### Paso 5 — Conectar canales (Telegram admin + WhatsApp leads)
-
-En este taller la política es:
-- **Telegram** para administración e instrucciones operativas.
-- **WhatsApp** para conversación comercial, seguimiento y cierre de leads.
-
-1. Ejecuta o reabre el wizard:
+Luego reinicia el gateway:
 
 ```bash
-openclaw onboard
+pkill -f openclaw-gateway; openclaw gateway --force --bind loopback
 ```
 
-2. En la parte de canales, configura Telegram pegando el token del bot.
-3. Configura WhatsApp pegando `PHONE_NUMBER_ID`, `BUSINESS_ACCOUNT_ID` y `ACCESS_TOKEN`.
-4. Guarda y cierra el onboarding.
+#### 2. Abrir la interfaz web
 
-### Paso 6 — Validación rápida (antes de Fase 1)
+Reemplaza `<codespace-name>` con el valor de `$CODESPACE_NAME` en tu terminal:
 
-- `openclaw --version` responde correctamente.
-- `openclaw secrets list` muestra `OPENROUTER_API_KEY` como configurada.
-- Telegram: el bot recibe al menos un mensaje de prueba del admin.
-- WhatsApp: se validó envío y recepción usando número de prueba (Cloud API) o número dedicado de pruebas.
+```
+https://<codespace-name>-18789.app.github.dev/chat?session=main
+```
+
+Por ejemplo, si `echo $CODESPACE_NAME` devuelve `silver-zebra-vwpjppp553w6gg`, la URL sería:
+
+```
+https://silver-zebra-vwpjppp553w6gg-18789.app.github.dev/chat?session=main
+```
+
+#### 3. Obtener el token de acceso
+
+La Web UI pide un token de autenticación. Se encuentra en:
+
+```bash
+cat ~/.openclaw/openclaw.json | grep '"token"'
+```
+
+Copia el valor del campo `token` e ingrésalo cuando la interfaz lo solicite.
 
 ---
 
-## Fase 1 — Vista Rápida del Poder (Sin Configuración)
+### Paso 4 (Opcional) — Reconfigurar OpenRouter
 
-> **Nivel 1:** el agente OpenClaw listo para usar, directo desde la terminal.
-
-Antes de crear Skills ni tocar ningún archivo de configuración, comprueba lo que OpenClaw puede hacer de inmediato con el comando `run`:
-
-### Prompt 1 — Investigación de mercado en Quito
+Si necesitas actualizar la API key después del onboarding:
 
 ```bash
-openclaw run "Realiza una investigación de mercado sobre productos orgánicos en Quito, Ecuador. Incluye demanda estimada, principales competidores locales, canales de venta más usados y una oportunidad de nicho para una PYME nueva."
+openclaw onboard --auth-choice apiKey --token-provider openrouter --token "$OPENROUTER_API_KEY"
 ```
 
-### Prompt 2 — Dashboard de negocio en Markdown
+Más información en la [documentación oficial de OpenRouter](https://docs.openclaw.ai/providers/openrouter)
+
+---
+
+## Fase 1 — El LLM Desnudo (Sin Configuración)
+
+> **Objetivo:** Medir la capacidad base del modelo *antes* de configurar ningún agente. Este ejercicio nos enseña exactamente por qué la arquitectura multi-agente importa.
+
+Antes de crear agentes, prueba el poder bruto del LLM directamente desde la CLI:
 
 ```bash
-openclaw run "Genera un dashboard básico en formato Markdown para una pequeña empresa de alimentos. Incluye secciones para ventas del mes, gastos operativos, top 3 productos y próximas acciones recomendadas."
+openclaw chat
 ```
 
-Observa la velocidad de respuesta y la calidad del resultado — todo procesado via OpenRouter con el modelo que configuraste. Esta es la capacidad base **sin ningún archivo de Skills personalizado**.
+### Prompt 1 — Investigación de mercado
 
-### Política de canales del taller (desde el inicio)
+```
+Realiza una investigación de mercado sobre productos orgánicos en Quito, Ecuador. Incluye demanda estimada, principales competidores locales, canales de venta más usados y una oportunidad de nicho para una PYME nueva.
+```
 
-- El usuario administrador envía instrucciones operativas por **Telegram**.
-- Los leads se atienden por **WhatsApp** (mensajes de seguimiento y cierre).
-- La terminal/CLI se usa para pruebas, depuración y ejecución local de comandos.
+### Prompt 2 — Análisis de datos hipotético
+
+```
+Tengo 50 leads en CSV con campos: id, nombre, telefono, producto_interes, estado, fecha_contacto, notas. El estado puede ser "nuevo lead", "en seguimiento" o "cerrado". ¿Cuál sería la tasa de conversión esperada y qué métricas debo
+monitorear para un negocio de distribución orgánica?
+```
+
+Obtuviste los resultados esperados?
 
 ---
 
@@ -247,482 +237,449 @@ Observa la velocidad de respuesta y la calidad del resultado — todo procesado 
 Luego de la instalación, OpenClaw crea un directorio de configuración en `~/.openclaw/`. La estructura de tu **proyecto** del taller será:
 
 ```
-mi-pyme/
-├── skills/
-│   ├── SOUL.md          # Identidad y personalidad central del agente
-│   ├── MEMORY.md        # Contexto persistente entre sesiones
-│   ├── HEARTBEAT.md     # Tareas periódicas y monitoreo automático
-│   ├── ventas.md        # Skill: Agente de Ventas (Closer)
-│   ├── admin.md         # Skill: Analista Administrativo
-│   ├── tecnico.md       # Skill: Infraestructura y Dashboards
-│   └── orquestador.md   # Skill: Coordinador central
-└── data/
-    ├── leads.csv        # Base de datos de leads (CSV inicial)
-    └── pyme.db          # Base de datos SQLite (migración posterior)
+~/.openclaw/
+├── workspace/               # Workspace global compartido por todos los agentes
+│   ├── SOUL.md              # Identidad y personalidad central del sistema
+│   ├── MEMORY.md            # Memoria curada de largo plazo (opcional)
+│   ├── HEARTBEAT.md         # Tareas periódicas y monitoreo automático
+│   ├── AGENTS.md            # Instrucciones operativas y prioridades
+│   ├── IDENTITY.md          # Nombre, estilo y presentación del sistema
+│   ├── TOOLS.md             # Convenciones y notas sobre herramientas
+│   ├── USER.md              # Contexto persistente entre sesiones
+│   └── memory/              # Bitácora diaria memory/YYYY-MM-DD.md
+│
+└── agents/                  # Workspace aislado por agente ← NUEVO en multi-agente
+    ├── ventas/
+    │   ├── SOUL.md          # Identidad del AgenteVentas
+    │   ├── MEMORY.md        # Memoria de ventas: leads, patrones, reglas
+    │   └── HEARTBEAT.md     # Verificaciones periódicas de seguimiento
+    ├── admin/
+    │   ├── SOUL.md          # Identidad del AgenteAdmin
+    │   ├── MEMORY.md        # Memoria de reportes: métricas, tendencias
+    │   └── HEARTBEAT.md     # Alertas de KPIs y reportes automáticos
+    └── tecnico/
+        ├── SOUL.md          # Identidad del AgenteTecnico
+        ├── MEMORY.md        # Stack técnico, dependencias, decisiones
+        └── HEARTBEAT.md     # Checks de salud: scripts, backups, dashboards
 ```
 
-OpenClaw busca los archivos `.md` de Skills en el directorio actual y en `~/.openclaw/skills/`. Al ejecutar `openclaw run --skill ventas`, carga `skills/ventas.md` como el system prompt del agente.
+> **Diferencia clave con el enfoque de Skills:** cada `openclaw agents add` genera un directorio propio en `~/.openclaw/agents/<nombre>/`. Los agentes tienen **sesiones aisladas**, **memoria independiente** y pueden recibir instrucciones en paralelo desde canales distintos — todo sin interferirse entre sí.
+
+El workspace global en `~/.openclaw/workspace/` define la identidad del sistema base que todos heredan como contexto raíz.
 
 ### Los tres archivos base: SOUL, MEMORY y HEARTBEAT
 
-Estos son los archivos más importantes del sistema. Definen el **alma**, la **memoria** y el **ritmo** del agente.
+Estos son los archivos más importantes del sistema. Definen el **alma**, la **memoria** y el **ritmo** de cada agente.
 
 ---
 
-#### `skills/SOUL.md` — Identidad del Agente
+#### `SOUL.md` — Personalidad del Agente
 
-El archivo **SOUL** es la **identidad central** del agente: su nombre, propósito, valores, tono de comunicación y reglas de comportamiento. Es el equivalente al "system prompt" raíz que todos los agentes heredan.
+El archivo **SOUL** define la **voz, el tono y la postura** del agente. Según la documentación oficial de OpenClaw, aquí va lo que cambia *cómo se siente* hablar con el agente: tono, opiniones, brevedad, humor, nivel de franqueza.
+
+> **Separación crítica:** `SOUL.md` = voz y estilo. `AGENTS.md` = reglas operativas, responsabilidades y herramientas. No mezcles los dos. Un `SOUL.md` lleno de listas de reglas procedurales produce un agente corporativo y sin personalidad.
 
 ```markdown
----
-name: soul
-description: Identidad central del sistema de agentes de la PYME
-author: mi-pyme
-version: 1.0.0
-model: openrouter/mistralai/mistral-small-3.2
----
+# Sistema OrganicBox Quito
 
-# Identidad del Sistema
+_No eres un chatbot. Te estás convirtiendo en alguien._
 
-Eres el sistema de inteligencia operativa de **OrganicBox Quito**, una PYME de
-distribución de productos orgánicos en Ecuador.
+Eres el sistema de inteligencia operativa de OrganicBox Quito.
 
-## Propósito
-Automatizar las operaciones comerciales, administrativas y técnicas de la empresa
-para que el equipo humano se enfoque en lo que importa: crecer y servir bien.
+## Tono
+- Directo. Sin rodeos, sin relleno.
+- Profesional pero humano. Nada corporativo.
+- Si la respuesta cabe en una oración, una oración es lo que das.
+- Nunca abras con "Claro que sí", "Excelente pregunta" ni "Con gusto te ayudo". Ve al grano.
 
-## Valores
-- **Honestidad**: nunca inventes datos. Si no tienes información, dilo.
-- **Brevedad**: respuestas concretas y accionables, no paredes de texto.
-- **Soberanía**: todos los datos quedan en los servidores de la empresa.
+## Postura y Limites
+- Tienes criterio propio. Si algo no tiene sentido, dilo antes de ejecutarlo.
+- Si el usuario está a punto de cometer un error, adviértelo. Primero.
+- No inventes datos. Si no sabes, di que no sabes.
+- Los datos de la empresa son soberanos: nunca salen del sistema.
 
-## Reglas
-1. Responde siempre en español neutro y profesional.
-2. Cuando registres un lead, confirma los datos antes de guardar.
-3. Nunca compartas información de clientes en texto plano fuera del sistema.
+## Voz
+- Español neutro, sin jerga regional ni tecnicismos innecesarios.
+- Usa tablas y listas cuando clarifican. Usa prosa cuando fluye mejor.
+- Sé el asistente con el que da gusto trabajar, no un manual de procedimientos.
+
+## Continuidad
+- Cada sesión, despiertas fresco. Estos archivos son tu memoria. Léelos. Actualízalos. Son cómo persistes. Si cambias este archivo, díselo al usuario.
 ```
 
-**¿Cómo se usa?** Cuando ejecutas un agente, el contenido de `SOUL.md` se inyecta automáticamente como contexto base en cada prompt.
+---
+
+#### `MEMORY.md` — Memoria Persistente
+
+El archivo **MEMORY** almacena **contexto que debe sobrevivir entre sesiones**: decisiones tomadas, reglas de negocio descubiertas, patrones de clientes y estado actual.
 
 ---
 
-#### `skills/MEMORY.md` — Memoria Persistente
+#### `HEARTBEAT.md` — Latido del Sistema
 
-El archivo **MEMORY** almacena **contexto que debe sobrevivir entre sesiones**: decisiones tomadas, reglas de negocio descubiertas, patrones de clientes, recordatorios y estado actual del sistema.
+El archivo **HEARTBEAT** define las **tareas periódicas y de monitoreo** que el agente ejecuta de forma autónoma: checks de salud, alertas y rutinas programadas.
 
-```markdown
----
-name: memory
-description: Contexto persistente del negocio entre sesiones
-author: mi-pyme
-version: 1.0.0
----
-
-# Memoria del Sistema
-
-## Reglas de Negocio Activas
-- Descuento del 10% para clientes con más de 3 compras confirmadas.
-- Seguimiento máximo: 3 intentos antes de marcar lead como inactivo.
-- Días de despacho: martes y viernes.
-
-## Estado Actual
-- Último reporte generado: 2026-04-24
-- Leads activos: 12 (actualizar semanalmente)
-- Producto más solicitado del mes: Pack Orgánico Familiar
-
-## Decisiones Registradas
-- 2026-04-20: Se migró la base de datos de CSV a SQLite (pyme.db).
-- 2026-04-15: Se activó seguimiento automático para leads > 48h sin respuesta.
-
-## Notas del Equipo
-- Carlos (ventas): prefiere mensajes cortos en WhatsApp, máximo 3 líneas.
-```
-
-**¿Cómo se usa?** `MEMORY.md` es un skill personalizado que se incluye explícitamente en cada invocación con `--skill skills/MEMORY.md`. Su contenido se inyecta como contexto al inicio del prompt, evitando que el usuario re-explique el estado del negocio en cada sesión.
+**¿Cómo se usa?** `HEARTBEAT.md` vive en el workspace del agente y puede combinarse con un `crontab` para verificaciones periódicas reales.
 
 ---
 
-#### `skills/HEARTBEAT.md` — Latido del Sistema
+## Fase 3 — Configuración Multi-Agente
 
-El archivo **HEARTBEAT** define las **tareas periódicas y de monitoreo** que el agente ejecuta de forma autónoma: checks de salud, alertas, reportes automáticos y rutinas programadas.
+> En esta fase dejamos de usar skills sueltos y creamos **agentes autónomos** con workspace, identidad y memoria propios. El comando central es `openclaw agents add`.
 
-```markdown
----
-name: heartbeat
-description: Tareas periódicas y monitoreo automático del sistema
-author: mi-pyme
-version: 1.0.0
----
-
-# Heartbeat — Latido del Sistema
-
-## Verificación de Salud (cada sesión)
-Al iniciar, revisa:
-1. ¿El archivo `data/leads.csv` o `data/pyme.db` existe y es legible?
-2. ¿Hay leads con `fecha_contacto` mayor a 48h sin cambio de estado?
-3. ¿El último reporte tiene más de 7 días? Si sí, notificar al usuario.
-
-## Alertas Automáticas
-- Si hay más de 5 leads nuevos sin asignar: avisar al AgenteVentas.
-- Si el archivo de datos supera 500 registros: sugerir migración a SQLite.
-- Si un script de backup lleva más de 3 días sin ejecutarse: recordar.
-
-## Reporte Semanal (viernes)
-Generar automáticamente:
-- Resumen de leads nuevos, en seguimiento y cerrados
-- Tasa de conversión de la semana
-- Top 3 productos más consultados
-```
-
-**¿Cómo se usa?** `HEARTBEAT.md` es un skill personalizado con instrucciones condicionales. Al incluirlo con `--skill skills/HEARTBEAT.md`, el LLM interpreta y ejecuta las verificaciones descritas. No es un proceso del sistema operativo: las «tareas automáticas» son instrucciones que el modelo sigue cuando el skill está activo.
-
----
-
-### Verificar la configuración de OpenRouter
+### El comando `openclaw agents add`
 
 ```bash
-openclaw secrets list
-# OPENROUTER_API_KEY  ✓ set
-
-openclaw doctor
-# ✓ Node.js version OK
-# ✓ Config file found
-# ✓ OPENROUTER_API_KEY set
-# ✓ Default model: openrouter/mistralai/mistral-small-3.2
+openclaw agents add <nombre> --soul "<descripción de identidad>"
 ```
 
----
-
-> **Nota sobre arquitectura:** Este taller usa un **enfoque basado en skills** — un solo agente OpenClaw cargado con diferentes archivos `.md` como system prompt especializado. Es la forma más rápida de construir un sistema funcional en 45 minutos.
->
-> La arquitectura multi-agente real de OpenClaw (`openclaw agents add ventas`, bindings, workspaces aislados por agente) requiere más configuración pero ofrece aislamiento completo de sesiones y credenciales por agente. Ver [docs.openclaw.ai/concepts/multi-agent](https://docs.openclaw.ai/concepts/multi-agent) para el paso siguiente.
-
----
-
-## Fase 3 — Sistema de Ventas Multi-Agente (Paso a Paso)
+Este comando:
+1. Crea el directorio `~/.openclaw/agents/<nombre>/`.
+2. Genera los archivos `SOUL.md`, `MEMORY.md` y `HEARTBEAT.md` pre-poblados.
+3. Registra el agente en el índice central de OpenClaw.
+4. El agente queda disponible para recibir mensajes vía CLI o Telegram.
 
 ### Paso 1 — Preparar la base de datos local
 
-Para agilizar el taller, ya tienes un archivo de ejemplo con **50 leads** en `data/leads.csv`. Verifica que existe y tiene contenido.
+Para agilizar el taller, ya tienes un archivo de ejemplo con **50 leads** en `data/leads.csv`. Verifica que existe y tiene contenido:
 
-Campos del archivo (resumen rápido):
-- `id`: identificador único del lead.
-- `nombre`: nombre del cliente potencial.
-- `telefono`: número de contacto.
-- `producto_interes`: producto consultado.
-- `estado`: etapa comercial (`nuevo lead`, `en seguimiento`, `cerrado`).
-- `fecha_contacto`: fecha del último contacto.
-- `notas`: contexto breve para seguimiento.
+```bash
+head -5 data/leads.csv
+```
 
-### Paso 2 — Crear el Skill del Agente de Ventas
+Campos del archivo:
 
-Crea `skills/ventas.md`:
+| Campo | Descripción |
+|-------|-------------|
+| `id` | Identificador único del lead |
+| `nombre` | Nombre del cliente potencial |
+| `telefono` | Número de contacto |
+| `producto_interes` | Producto consultado |
+| `estado` | Etapa comercial: `nuevo lead`, `en seguimiento`, `cerrado` |
+| `fecha_contacto` | Fecha del último contacto |
+| `notas` | Contexto breve para seguimiento |
+
+### Paso 2 — Crear el AgenteVentas
+
+```bash
+openclaw agents add ventas \
+  --soul "Eres AgenteVentas, un closer comercial empático para OrganicBox Quito. \
+Tu especialidad es gestionar leads desde data/leads.csv, hacer seguimiento \
+por Telegram y redactar mensajes de conversión efectivos. Nunca inventes datos. \
+Confirma siempre antes de modificar un registro."
+```
+
+OpenClaw genera `~/.openclaw/agents/ventas/SOUL.md`. Reemplaza el contenido con la voz del agente:
 
 ```markdown
----
-name: ventas
-description: Agente closer de ventas y seguimiento de leads por WhatsApp
-author: mi-pyme
-version: 1.0.0
-model: openrouter/mistralai/mistral-small-3.2
----
+# AgenteVentas
 
-# AgenteVentas — Closer Comercial
+Eres el closer comercial de OrganicBox Quito.
 
-Eres un asesor de ventas empático y persuasivo para OrganicBox Quito.
+## Tono
+- Empático, directo. Cero burocracia.
+- Los mensajes de seguimiento son conversaciones, no formularios.
+- Una llamada a la acción por mensaje. Una sola.
+- Nunca abras con saludos corporativos. Entra al punto.
 
-## Responsabilidades
-- Registrar nuevos leads en el archivo de datos.
-- Hacer seguimiento a clientes existentes según su estado.
-- Redactar mensajes de WhatsApp efectivos para cerrar ventas.
+## Postura
+- Antes de guardar cualquier dato, confírmalo con el usuario. Sin excepciones.
+- Si un lead lleva más de 48h sin respuesta, lo mencionas sin que te lo pidan.
+- No inventas teléfonos, productos ni nombres. Si no está en los datos, no existe.
+- Si el cierre es inminente, lo ves antes que nadie y lo señalas.
 
-## Reglas
-- Siempre confirma los datos de un nuevo lead antes de registrarlos.
-- Mensajes de WhatsApp: máximo 3 líneas, tono amigable, llamada a la acción clara.
-- Si un lead lleva más de 48h sin respuesta, propón un mensaje de reactivación.
-- Nunca inventes números de teléfono ni nombres de productos que no existan en los datos.
-- Mantén la comunicación con leads exclusivamente en WhatsApp.
-
-## Herramientas disponibles
-- Leer y escribir en `data/leads.csv` o `data/pyme.db`
-- Ejecutar queries SQL simples sobre la tabla `leads`
+## Voz
+- Tres líneas máximo para mensajes a leads.
+- Amigable, con calidez real, pero siempre con propósito claro.
 ```
 
-### Paso 3 — Crear el Skill del Agente Analista Administrativo
+> **Nota:** Las responsabilidades, reglas operativas y herramientas disponibles van en `~/.openclaw/agents/ventas/AGENTS.md`, no en `SOUL.md`.
 
-Crea `skills/admin.md`:
+### Paso 3 — Crear el AgenteAdmin
+
+```bash
+openclaw agents add admin \
+  --soul "Eres AgenteAdmin, analista de operaciones para OrganicBox Quito. \
+Tu trabajo es calcular KPIs, generar reportes ejecutivos en Markdown y detectar \
+tendencias en datos de ventas. Basas tus análisis solo en datos reales. \
+Recibes instrucciones por Telegram y entregas reportes claros y accionables."
+```
+
+Edita `~/.openclaw/agents/admin/SOUL.md`:
 
 ```markdown
+# AgenteAdmin
+
+Eres el analista de operaciones de OrganicBox Quito.
+
+## Tono
+- Analítico y preciso. Los números hablan; tú los contextualizas.
+- No reportas datos: reportas lo que significan.
+- Nunca presentes un número sin decir si es bueno, malo o esperado.
+- Sin preambles corporativos. Directo al análisis.
+
+## Postura
+- Solo analizas lo que existe en los datos reales. Sin extrapolaciones vacías.
+- Si los datos son insuficientes para una conclusión, lo dices explícitamente.
+- Una recomendación sin acción concreta es decoración. Las tuyas son accionables.
+- Si una métrica es preocupante, la señalas directamente, sin suavizarla.
+
+## Voz
+- Estructura fija en reportes: Resumen → Métricas → Tendencia → Recomendaciones.
+- Markdown con tablas cuando los datos lo piden. Prosa cuando el contexto lo requiere.
+```
+
+> **Nota:** Las responsabilidades operativas y las herramientas van en `~/.openclaw/agents/admin/AGENTS.md`.
+
+### Paso 4 — Crear el AgenteTecnico
+
+```bash
+openclaw agents add tecnico \
+  --soul "Eres AgenteTecnico, ingeniero full-stack e infraestructura para OrganicBox Quito. \
+Escribes scripts Python y Bash listos para ejecutar, migras datos entre formatos \
+y construyes dashboards web interactivos. Tu código es limpio, comentado y funciona \
+sin modificaciones adicionales."
+```
+
+Edita `~/.openclaw/agents/tecnico/SOUL.md`:
+
+```markdown
+# AgenteTecnico
+
+Eres el ingeniero de software y automatización de OrganicBox Quito.
+
+## Tono
+- Ingeniero de verdad: concreto, orientado a soluciones que funcionan.
+- El código que generas es ejecutable sin modificaciones. Si no puede serlo, lo dices.
+- Si hay una forma más simple de hacer algo, la propones antes de la complicada.
+- Sin magia oscura: el código que no puedes explicar en una línea, lo simplificas.
+
+## Postura
+- Tienes criterio técnico. Si la arquitectura propuesta tiene un problema, lo señalas.
+- Antes de cualquier operación destructiva (migración, sobrescritura), muestras el plan y esperas confirmación.
+- El manejo de errores no es opcional: siempre está incluido.
+- Los datos del usuario son sagrados: validas entrada antes de escribir en la DB.
+
+## Voz
+- Código siempre comentado. Pasos numerados. Decisiones técnicas explicadas en una línea.
+- Explica el "por qué" de cada elección relevante, no solo el "qué".
+```
+
+> **Nota:** Las responsabilidades, restricciones operativas y herramientas van en `~/.openclaw/agents/tecnico/AGENTS.md`.
+
+### Paso 5 — Verificar los agentes registrados
+
+```bash
+openclaw agents list
+```
+
+Deberías ver:
+
+```
+NAME      MODEL                                    STATUS   CHANNEL
+ventas    openrouter/mistralai/mistral-small-3.2   active   cli
+admin     openrouter/mistralai/mistral-small-3.2   active   telegram
+tecnico   openrouter/mistralai/mistral-small-3.2   active   cli
+```
+
 ---
-name: admin
-description: Analista de operaciones — reportes, métricas y dashboards ejecutivos
-author: mi-pyme
-version: 1.0.0
-model: openrouter/mistralai/mistral-small-3.2
----
 
-# AgenteAdmin — Analista Operativo
+## Fase 4 — Interacción Multi-Agente desde CLI y Telegram
 
-Eres un analista de operaciones para OrganicBox Quito.
+### Sintaxis principal
 
-## Responsabilidades
-- Calcular métricas clave: tasa de conversión, ticket promedio, leads por estado.
-- Generar reportes ejecutivos claros en formato Markdown o tabla.
-- Identificar tendencias en los datos de ventas.
-- Detectar oportunidades de mejora accionables.
-
-## Reglas
-- Basa tus análisis únicamente en los datos reales del archivo.
-- Presenta siempre los resultados con contexto (¿es bueno o malo ese número?).
-- Si los datos son insuficientes para una conclusión, dilo explícitamente.
-- Un reporte ejecutivo debe tener: resumen, métricas, tendencia y recomendaciones.
-- Todas las instrucciones y respuestas del AgenteAdmin se gestionan por Telegram.
-```
-
-### Paso 4 — Usar el Skill de Ventas desde la terminal
+Hablar con un agente específico:
 
 ```bash
-openclaw run --skill skills/ventas.md "Registra un nuevo lead: Pedro Lema, teléfono 0993456789, interesado en Caja Semanal Verduras. Llegó por recomendación de Ana Morales."
+openclaw chat --agent <nombre>
 ```
 
-### Paso 5 — Usar el Skill Admin desde la terminal
+Enviar un mensaje puntual sin modo interactivo:
 
 ```bash
-openclaw run --skill skills/admin.md "Genera el reporte ejecutivo de esta semana con métricas clave, tendencia y 3 recomendaciones."
-```
-
-### Paso 6 — Verificar los Skills disponibles
-
-```bash
-ls skills/
-# SOUL.md  MEMORY.md  HEARTBEAT.md  ventas.md  admin.md  tecnico.md  orquestador.md
+openclaw msg --agent <nombre> "<mensaje>"
 ```
 
 ---
 
-## Fase 4 — Interacción con Cada Agente
+### AgenteVentas — Gestión de leads
 
-Todos los agentes se invocan con `openclaw run --skill <archivo>` desde el directorio del proyecto:
-
-### Prompts para el Agente de Ventas
-
-**Registrar un nuevo lead:**
+**Registrar un nuevo lead desde CLI:**
 
 ```bash
-openclaw run --skill skills/ventas.md \
-  "Registra: Nombre: Pedro Lema, Teléfono: 0993456789, Producto: Caja Semanal Verduras, Notas: Recomendación de Ana Morales."
+openclaw msg --agent ventas \
+  "Registra un nuevo lead: Nombre: Valentina Ríos, Teléfono: 0994567890, \
+Producto: Pack Orgánico Familiar, Notas: Llegó por recomendación de Ana Morales."
 ```
 
-**Redactar mensaje de seguimiento por WhatsApp:**
+**Listar leads en seguimiento con acciones sugeridas:**
 
 ```bash
-openclaw run --skill skills/ventas.md \
-  "Redacta un mensaje de WhatsApp para Carlos Ruiz, quien pidió cotización de 'Caja Semanal Verduras' ayer. Debe ser cordial y motivarlo a confirmar hoy."
+openclaw msg --agent ventas \
+  "Muéstrame todos los leads en estado 'en seguimiento'. Para cada uno, \
+sugiere una acción concreta basada en el tiempo sin respuesta."
 ```
 
-**Listar leads en seguimiento:**
+**Redactar mensaje de seguimiento:**
 
 ```bash
-openclaw run --skill skills/ventas.md \
-  "Muéstrame todos los leads en estado 'en seguimiento' y sugiere una acción concreta para cada uno."
+openclaw msg --agent ventas \
+  "Redacta un mensaje de seguimiento para Carlos Ruiz (id: 2). \
+Pidió cotización de 'Caja Semanal Verduras' hace 2 días. \
+Tono cordial. Máximo 3 líneas. Incluye una llamada a la acción."
+```
+
+**Actualizar el estado de un lead:**
+
+```bash
+openclaw msg --agent ventas \
+  "Actualiza el lead id 5 (Luisa Vega): cambiar estado a 'cerrado', \
+agregar nota 'Descuento del 10% aplicado, pago confirmado el 2026-04-25'."
 ```
 
 ---
 
-### Prompts para el Agente Analista Administrativo
+### AgenteAdmin — Reportes y KPIs (desde Telegram)
 
-**Analizar el rendimiento semanal:**
+El AgenteAdmin recibe instrucciones directamente en tu bot de Telegram. Abre el bot y envía:
 
-```bash
-openclaw run --skill skills/admin.md \
-  "Analiza los datos de leads de esta semana. Calcula: total de leads nuevos, tasa de conversión, producto más solicitado y lead más antiguo sin respuesta. Presenta en tabla Markdown."
+**Analizar estado actual del pipeline:**
+
+```
+Analiza los datos de leads. Calcula: total por estado, tasa de conversión,
+producto más solicitado y lead más antiguo sin cambio. Presenta en tabla Markdown.
 ```
 
-**Generar reporte ejecutivo:**
+**Reporte ejecutivo semanal:**
 
-```bash
-openclaw run --skill skills/admin.md \
-  "Genera un reporte ejecutivo en Markdown: resumen de ventas, métricas clave, análisis de tendencias y 3 recomendaciones para la próxima semana."
+```
+Genera el reporte ejecutivo de esta semana: resumen de ventas, métricas clave,
+análisis de tendencias y 3 recomendaciones concretas para la próxima semana.
 ```
 
 **Detectar oportunidades de venta cruzada:**
 
+```
+Con base en los datos de leads, identifica qué clientes podrían estar interesados
+en productos adicionales. Lista priorizada con justificación basada en historial.
+```
+
+También puedes usar CLI directamente:
+
 ```bash
-openclaw run --skill skills/admin.md \
-  "Identifica qué clientes podrían estar interesados en productos adicionales y genera una lista priorizada con justificación."
+openclaw msg --agent admin \
+  "Genera el reporte ejecutivo de esta semana con métricas clave y 3 recomendaciones."
 ```
 
 ---
 
-## Fase 5 — Agente Técnico y Agente Orquestador
-
-### Agente Técnico
-
-El `AgenteTecnico` maneja infraestructura: scripts, migraciones de datos e implementación de dashboards.
-
-Crea `skills/tecnico.md`:
-
-```markdown
----
-name: tecnico
-description: Infraestructura técnica — scripts, migraciones, dashboards e integraciones
-author: mi-pyme
-version: 1.0.0
-model: openrouter/mistralai/mistral-small-3.2
----
-
-# AgenteTecnico — Ingeniero Interno
-
-Eres un ingeniero de software especializado en automatización para PYMEs.
-
-## Responsabilidades
-- Escribir scripts funcionales en Python o Bash, listos para ejecutar.
-- Migrar datos entre formatos: CSV → SQLite → JSON.
-- Generar dashboards HTML autocontenidos (CSS inline) a partir de datos.
-- Documentar cada proceso con pasos numerados y comentarios en el código.
-
-## Reglas
-- El código debe ser limpio, comentado y ejecutable sin modificaciones.
-- Siempre incluye manejo de errores básico (try/except o set -e).
-- Al generar HTML, usa solo CSS inline para que el archivo sea portable.
-- Antes de sugerir una migración de datos, muestra el plan de pasos primero.
-
-## Herramientas disponibles
-- Leer/escribir archivos locales
-- Ejecutar scripts Python y Bash
-- Acceso a `data/leads.csv` y `data/pyme.db`
-```
-
-#### Prompts de ejemplo para el Agente Técnico
+### AgenteTecnico — Scripts, migraciones y operaciones técnicas
 
 **Migrar leads de CSV a SQLite:**
 
 ```bash
-openclaw run --skill skills/tecnico.md \
-  "Genera un script Python que migre data/leads.csv a SQLite (data/pyme.db), tabla leads, conservando todas las columnas. Incluye manejo de errores."
+openclaw msg --agent tecnico \
+  "Genera un script Python que migre data/leads.csv a SQLite en data/pyme.db, \
+tabla 'leads', conservando todas las columnas. Incluye verificación de existencia \
+previa de la tabla y manejo de errores con try/except."
 ```
 
-**Implementar un dashboard HTML:**
+Ejecuta el script generado:
 
 ```bash
-openclaw run --skill skills/tecnico.md \
-  "Con base en data/leads.csv, genera dashboard.html con tabla estilizada, contadores por estado y fecha de generación. CSS inline, autocontenido."
+python migrate_leads.py
 ```
 
 **Crear script de backup automático:**
 
 ```bash
-openclaw run --skill skills/tecnico.md \
-  "Escribe un script Bash que copie data/ a backups/YYYY-MM-DD/. Crear carpeta si no existe. Mostrar resumen de archivos copiados."
-```
-
-**Crear landing page con CTA a WhatsApp:**
-
-```bash
-openclaw run --skill skills/tecnico.md \
-  "Genera landing.html para OrganicBox Quito con propuesta de valor, beneficios, testimonios y botón principal 'Hablar por WhatsApp' apuntando a https://wa.me/593999999999. Debe ser responsive y autocontenida."
+openclaw msg --agent tecnico \
+  "Escribe un script Bash que copie todo el directorio data/ a backups/YYYY-MM-DD/ \
+usando la fecha actual. Crear la carpeta si no existe. Mostrar resumen de archivos \
+copiados al finalizar. Usar set -e para salir en caso de error."
 ```
 
 ---
 
-### Agente Orquestador
+## Fase 5 — El Clímax: Dashboard Web con CRUD desde leads.csv
 
-El `AgenteOrquestador` es el **punto de entrada único**. Recibe tareas en lenguaje natural, las descompone y genera un plan de delegación explícito: para cada subtarea indica qué skill invocar y con qué prompt exacto. El usuario (o un script) ejecuta cada paso con `openclaw run --skill`.
+> **Objetivo:** El AgenteTecnico construye una aplicación web real — autocontenida, sin servidor, operativa desde el archivo — que lee `data/leads.csv`, lo migra a SQLite, y expone una interfaz con tabla, métricas y operaciones CRUD completas.
 
-Crea `skills/orquestador.md`:
+Esta es la demostración definitiva de soberanía tecnológica: **un dashboard de gestión comercial generado por IA, corriendo 100% en tu máquina, sin dependencias externas**.
 
-```markdown
----
-name: orquestador
-description: Coordinador central — analiza, descompone y delega tareas al agente correcto
-author: mi-pyme
-version: 1.0.0
-model: openrouter/mistralai/mistral-small-3.2
----
-
-# AgenteOrquestador — Coordinador Central
-
-Eres el coordinador del sistema multi-agente de OrganicBox Quito.
-
-## Agentes disponibles
-| Agente        | Skill     | Especialidad                                    |
-|---------------|-----------|--------------------------------------------------|
-| AgenteVentas  | ventas    | Leads por WhatsApp, seguimiento, cierre comercial |
-| AgenteAdmin   | admin     | Reportes por Telegram, métricas, tendencias      |
-| AgenteTecnico | tecnico   | Scripts, migraciones, dashboards, infraestructura|
-
-## Proceso de delegación
-1. Analiza la solicitud: ¿es comercial, analítica o técnica?
-2. Si cubre varios tipos, divídela en subtareas ordenadas.
-3. Para cada subtarea, indica: skill a usar + prompt exacto.
-4. Consolida los resultados en una respuesta coherente.
-
-## Reglas
-- Nunca ejecutes tareas especializadas tú mismo: siempre delega explícitamente.
-- Si la solicitud es ambigua, pide una aclaración antes de proceder.
-- Siempre muestra el plan de delegación antes de ejecutar.
-```
-
-#### Cómo usar el Orquestador desde la terminal
-
-El orquestador usa su propio skill (`skills/orquestador.md`) y tiene acceso al contenido de los demás skills como contexto. Simplemente describe la tarea completa:
-
-#### Prompts de ejemplo para el Orquestador
-
-**Tarea mixta — Captura, análisis y seguimiento:**
+### Paso 1 — Generar el dashboard con el AgenteTecnico
 
 ```bash
-openclaw run --skill skills/orquestador.md \
-  "Esta semana recibimos 5 leads nuevos por Instagram. Registrarlos, analizar cuáles tienen más potencial y redactar un WhatsApp personalizado para cada uno."
+openclaw msg --agent tecnico \
+  "Construye dashboard.html: una aplicación web autocontenida que use \
+JavaScript vanilla para cargar data/leads.csv via fetch(), convertirlo \
+a una tabla SQLite en memoria con sql.js (CDN), y mostrar: \
+(1) contadores por estado con tarjetas de color, \
+(2) tabla completa de leads con filtros por estado y búsqueda, \
+(3) botones de edición inline para cambiar estado y agregar notas, \
+(4) botón 'Exportar CSV' con el estado actual. \
+CSS inline. Sin frameworks. Autocontenido en un solo archivo HTML."
 ```
 
-**Tarea mixta — Cierre de semana completo:**
+### Paso 2 — Abrir el dashboard en el navegador
 
 ```bash
-openclaw run --skill skills/orquestador.md \
-  "Genera el cierre de semana: reporte ejecutivo de ventas con métricas y dashboard HTML actualizado listo para compartir con el equipo."
+# Desde el directorio del proyecto:
+python3 -m http.server 3000
 ```
 
-**Tarea mixta — Captación web hacia WhatsApp:**
+Abre en tu navegador: `http://localhost:3000/dashboard.html`
+
+### Paso 3 — Generar un reporte ejecutivo en HTML
 
 ```bash
-openclaw run --skill skills/orquestador.md \
-  "Diseña e implementa una landing page para campaña de Instagram que capture interés y dirija cada lead a WhatsApp, luego define cómo medir conversiones semanales en el reporte de admin."
+openclaw msg --agent tecnico \
+  "Lee data/leads.csv y genera reporte.html con: fecha de generación, \
+total de leads, desglose por estado (tabla + porcentajes), \
+producto más solicitado, lead más antiguo en seguimiento, \
+y una recomendación de acción inmediata. CSS inline, autocontenido."
 ```
 
-**Diagnóstico y migración de datos:**
+### Paso 4 — Script de backup automático
 
 ```bash
-openclaw run --skill skills/orquestador.md \
-  "El archivo de leads tiene más de 200 registros y las consultas están lentas. Analiza el problema, migra a SQLite y documenta los cambios."
+openclaw msg --agent tecnico \
+  "Escribe backup.sh: copia data/ a backups/$(date +%Y-%m-%d)/, \
+crea la carpeta si no existe, imprime resumen de archivos copiados \
+y el tamaño total. Incluye set -e al inicio."
 ```
 
----
-
-## Fase 6 — Landing Page para Captación a WhatsApp
-
-En esta fase agregamos el canal web como entrada de leads, pero manteniendo WhatsApp como destino de conversación comercial.
-
-### Objetivo
-
-Construir una `landing.html` que:
-- Presente la propuesta de valor de OrganicBox Quito.
-- Explique beneficios concretos (precio, frescura, entregas).
-- Incluya un CTA principal que abra WhatsApp (`https://wa.me/<numero>`).
-- Permita medir resultados (clicks al CTA y leads convertidos por semana).
-
-### Flujo recomendado
-
-1. Tráfico (Instagram/Facebook/QR) llega a la landing.
-2. El usuario hace clic en "Hablar por WhatsApp".
-3. El AgenteVentas continúa el seguimiento y cierre en WhatsApp.
-4. El AgenteAdmin reporta conversión landing → conversación → venta.
-
-### Prompt sugerido para implementación técnica
-
 ```bash
-openclaw run --skill skills/tecnico.md \
-  "Crea una landing page responsive (landing.html) enfocada en conversión a WhatsApp para OrganicBox Quito. Incluye hero, beneficios, prueba social, FAQ corta y botón fijo de WhatsApp con URL wa.me. Entrega archivo autocontenido con CSS inline."
+bash backup.sh
+```
+
+### Paso 5 — Verificar la arquitectura resultante
+
+Al finalizar esta fase, el sistema completo tiene esta estructura:
+
+```
+proyecto-taller/
+├── data/
+│   ├── leads.csv          # Fuente de verdad original
+│   └── pyme.db            # SQLite migrado por AgenteTecnico
+├── dashboard.html         # Dashboard CRUD generado por IA
+├── reporte.html           # Reporte ejecutivo generado por AgenteAdmin
+├── migrate_leads.py       # Script de migración generado
+└── backup.sh              # Script de backup generado
+
+~/.openclaw/agents/
+├── ventas/                # Workspace aislado del AgenteVentas
+│   ├── SOUL.md
+│   ├── MEMORY.md
+│   └── HEARTBEAT.md
+├── admin/                 # Workspace aislado del AgenteAdmin
+│   ├── SOUL.md
+│   ├── MEMORY.md
+│   └── HEARTBEAT.md
+└── tecnico/               # Workspace aislado del AgenteTecnico
+    ├── SOUL.md
+    ├── MEMORY.md
+    └── HEARTBEAT.md
 ```
 
 ---
@@ -730,29 +687,35 @@ openclaw run --skill skills/tecnico.md \
 ### Arquitectura final del sistema
 
 ```
-                    ┌─────────────────────┐
- Admin (Telegram) ─►│  skill:orquestador  │  genera plan de delegación
-                    └──────────┬──────────┘
-                               │ delega
-           ┌───────────────────┼───────────────────┐
-           ▼                   ▼                   ▼
-  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
-  │  skill:ventas  │  │  skill:admin   │  │ skill:tecnico  │
-  │                │  │                │  │                │
-  │ Leads, WhatsApp│  │ Reportes,      │  │ Scripts,       │
-  │ Seguimiento    │  │ Métricas,      │  │ Dashboards,    │
-  │ Cierre ventas  │  │ Dashboards MD  │  │ Migraciones    │
-  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘
-          │                   │                   │
-          └───────────────────┴───────────────────┘
-                               │
-                    Landing web │ (CTA a WhatsApp)
-                               ▼
-                    ┌──────────▼──────────┐
-                    │   data/leads.csv    │
-                    │   data/pyme.db      │
-                    │   skills/*.md       │
-                    └─────────────────────┘
+ Telegram (Admin/Orquestación)
+           │
+           ▼
+  ┌────────────────┐
+  │  AgenteAdmin   │  ← recibe instrucciones por Telegram
+  │  ~/.openclaw/  │    responde reportes por Telegram
+  │  agents/admin/ │
+  └────────────────┘
+
+ CLI (Operación local)
+           │
+           ├──────────────────────────────┐
+           ▼                              ▼
+  ┌────────────────┐             ┌────────────────┐
+  │  AgenteVentas  │             │  AgenteTecnico │
+  │  agents/ventas/│             │  agents/tecnico│
+  │                │             │                │
+  │ Gestión leads  │             │ Scripts Python │
+  │ leads.csv/db   │             │ Dashboard HTML │
+  │ Seguimiento    │             │ Migraciones DB │
+  └───────┬────────┘             └───────┬────────┘
+          │                             │
+          └─────────────┬───────────────┘
+                        ▼
+             ┌──────────────────┐
+             │  data/leads.csv  │
+             │  data/pyme.db    │
+             │  dashboard.html  │
+             └──────────────────┘
 ```
 
 ---
@@ -763,12 +726,12 @@ openclaw run --skill skills/tecnico.md \
 
 Al correr OpenClaw en tu propio servidor:
 
-- **Tus datos nunca salen de tu máquina.** La conexión al LLM pasa por OpenRouter, pero tus conversaciones y datos de negocio se procesan localmente.
-- **Sin open ports.** El agente solo hace conexiones salientes. Sin VPN, sin port forwarding.
-- **Control total.** Puedes revocar acceso, cambiar el modelo de IA, o desconectar el agente en cualquier momento.
-- **Sin suscripciones por uso.** El plan Personal es gratuito para siempre.
+- **Tus datos nunca salen de tu máquina.** La conexión al LLM pasa por OpenRouter, pero tus conversaciones y datos de negocio se quedan en tu red.
+- **Sin puertos abiertos.** El agente solo hace conexiones salientes. Sin VPN ni port forwarding.
+- **Control total.** Puedes revocar acceso, cambiar el modelo, o desconectar cualquier agente en cualquier momento.
+- **Sin suscripciones por uso.** El plan personal de OpenClaw es gratuito de forma permanente.
 
-Esto es **soberanía tecnológica**: la capacidad de una organización de controlar sus propias herramientas digitales.
+Esto es **soberanía tecnológica**: la capacidad de una organización de controlar, entender y modificar sus propias herramientas digitales.
 
 ---
 
@@ -776,15 +739,14 @@ Esto es **soberanía tecnológica**: la capacidad de una organización de contro
 
 | Paso | Acción |
 |------|--------|
-| **1. Datos reales** | Reemplaza el CSV por tu base de datos SQLite o PostgreSQL real. |
-| **2. Más Skills** | Crea skills especializados: soporte al cliente, inventario, marketing. |
-| **3. Telegram Admin Bot** | Conecta las instrucciones administrativas (reportes, comandos, alertas) a Telegram Bot API. |
-| **4. Bot de WhatsApp** | Conecta el skill `ventas` con la API de WhatsApp Business vía webhook. |
-| **5. Landing de Conversión** | Publica una landing con botón directo a WhatsApp y etiquetas UTM para medir campañas. |
-| **6. Multi-agente real** | Usa `openclaw agents add ventas` para crear agentes aislados con workspace, sesiones y credenciales propias. Ver [docs.openclaw.ai/concepts/multi-agent](https://docs.openclaw.ai/concepts/multi-agent). |
-| **7. Automatización** | Usa el skill `HEARTBEAT.md` junto a un cron job (`crontab`) para disparar verificaciones periódicas automáticamente. |
-| **8. Modelos locales** | Usa `openclaw config set agents.defaults.model ollama/llama3` para correr 100% offline con Ollama. |
-| **9. Skills marketplace** | Publica tus Skills en el directorio de la comunidad OpenClaw. |
+| **1. Datos reales** | Reemplaza `leads.csv` por tu base de datos real (SQLite, PostgreSQL). |
+| **2. Más agentes** | Añade `openclaw agents add soporte` para atención post-venta o `inventario` para stock. |
+| **3. Telegram admin completo** | Conecta alertas automáticas de HEARTBEAT al bot de Telegram con `crontab`. |
+| **4. Modelos locales** | Usa `openclaw config set agents.defaults.model ollama/llama3` para correr 100% offline. |
+| **5. Dashboard en producción** | Sirve `dashboard.html` con Nginx o Caddy en tu mismo servidor para acceso desde el equipo. |
+| **6. Bindings multi-canal** | Agrega WhatsApp al AgenteVentas cuando estés listo: `openclaw agents bind ventas --channel whatsapp`. |
+| **7. Heartbeat automático** | Programa verificaciones periódicas con `crontab -e` usando `openclaw msg --agent admin`. |
+| **8. Skills marketplace** | Publica los SOUL.md de tus agentes en el directorio de la comunidad OpenClaw. |
 
 ---
 
@@ -792,6 +754,7 @@ Esto es **soberanía tecnológica**: la capacidad de una organización de contro
 
 - **OpenClaw Docs:** [https://docs.openclaw.ai](https://docs.openclaw.ai)
 - **OpenClaw en npm:** [https://www.npmjs.com/package/openclaw](https://www.npmjs.com/package/openclaw)
+- **Multi-agent guide:** [https://docs.openclaw.ai/concepts/multi-agent](https://docs.openclaw.ai/concepts/multi-agent)
 - **OpenRouter (modelos):** [https://openrouter.ai](https://openrouter.ai)
 - **OpenRouter — keys:** [https://openrouter.ai/keys](https://openrouter.ai/keys)
 - **OpenRouter — modelos disponibles:** [https://openrouter.ai/models](https://openrouter.ai/models)
