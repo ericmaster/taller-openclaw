@@ -110,6 +110,8 @@ openclaw doctor   # verifica la instalación
 
 ### Paso 3 — Configurar acceso web en GitHub Codespaces
 
+> 🔒 **NOTA DE SEGURIDAD:** Por motivos estrictamente demostrativos para este taller, se expone la interfaz a la web pública. En una implementación real, se recomienda que el acceso sea **protegido** y, de preferencia, únicamente **local**.
+
 > Solo si usas un Codespace. El gateway expone la Web UI en el puerto `18789`.
 
 ```bash
