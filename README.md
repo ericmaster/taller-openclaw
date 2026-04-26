@@ -1,5 +1,7 @@
 # Implementación de Sistemas Multi-Agente con OpenClaw
 
+> ⚠️ **DISCLAIMER:** El contenido de este taller es únicamente para fines demostrativos y educativos prácticos. Una implementación en producción requiere consideraciones de seguridad importantes. Se recomienda desplegar en ambientes aislados y controlados y nunca usar información personal o datos sensibles hasta tener mecanismos de observabilidad, trazabilidad y un flujo de trabajo orientado a la privacidad y protección de datos.
+
 > **FLISOL 2026 — Taller Práctico**
 > Construye un sistema de ventas multi-agente para PYMEs usando OpenClaw — un gateway de IA multi-canal de código abierto que corre en tu propio servidor, sin suscripciones, sin enviar tus datos a terceros.
 
