@@ -706,3 +706,11 @@ Al correr OpenClaw en tu propio servidor: tus datos no salen de tu máquina, no 
 
 > _"La mejor tecnología es la que puedes entender, modificar y controlar."_
 > **FLISOL 2026 — Festival Latinoamericano de Instalación de Software Libre**
+
+## ☕ Cómprame un café
+
+Si este taller te sirvió, invítame un café con DeUna (Ecuador).
+
+<img src=".github/assets/deuna-qr-300.png" alt="Código QR de DeUna para apoyar a Eric Manuel" width="200">
+
+Escanéalo desde la app DeUna o desde la app de tu banco ecuatoriano compatible con DeUna.
