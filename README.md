@@ -711,6 +711,6 @@ Al correr OpenClaw en tu propio servidor: tus datos no salen de tu máquina, no 
 
 Si este taller te sirvió, invítame un café con DeUna (Ecuador).
 
-<img src=".github/assets/deuna-qr-300.png" alt="Código QR de DeUna para apoyar a Eric Manuel" width="200">
+<img src=".github/assets/deuna-qr-300.png" alt="Código QR de DeUna" width="200">
 
 Escanéalo desde la app DeUna o desde la app de tu banco ecuatoriano compatible con DeUna.
